@@ -1,0 +1,22 @@
+{
+  "name": "echo-chat",
+  "version": "1.0.0",
+  "description": "A chat app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "ssh+git://git@github.com/toshisasaki/echo-chat.git"
+  },
+  "keywords": [
+    "chat"
+  ],
+  "author": "Anderson Tohiyuki Sasaki",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^4.2.0"
+  }
+}
