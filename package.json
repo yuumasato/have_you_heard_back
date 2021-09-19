@@ -2,10 +2,10 @@
   "name": "echo-chat",
   "version": "0.1.0",
   "description": "A chat app",
-  "main": "index.js",
+  "main": "src",
   "scripts": {
-    "start": "node index.js",
-    "test": "node test.js"
+    "start": "node src/",
+    "test": "node test/"
   },
   "repository": {
     "type": "git",
