@@ -9,6 +9,7 @@ if (cluster.isMaster) {
 
     const httpServer = http.createServer();
     const numWorkers = (numCPUs > 5? 5: numCPUs);
+    const PORT = process.env.PORT || 3000;
 
     // Setup sticky sessions
     setupMaster(httpServer, {
@@ -24,7 +25,7 @@ if (cluster.isMaster) {
         serialization: "advanced",
     });
 
-    httpServer.listen(3000);
+    httpServer.listen(PORT);
 
     for (let i = 0; i < numWorkers; i++) {
         cluster.fork();
