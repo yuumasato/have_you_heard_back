@@ -8,6 +8,7 @@ if (cluster.isMaster) {
     console.log(`Master ${process.pid} is running`);
 
     const httpServer = http.createServer();
+    const numWorkers = (numCPUs > 5? 5: numCPUs);
 
     // Setup sticky sessions
     setupMaster(httpServer, {
@@ -25,7 +26,7 @@ if (cluster.isMaster) {
 
     httpServer.listen(3000);
 
-    for (let i = 0; i < numCPUs; i++) {
+    for (let i = 0; i < numWorkers; i++) {
         cluster.fork();
     }
 
