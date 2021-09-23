@@ -17,6 +17,9 @@
   "author": "Anderson Tohiyuki Sasaki",
   "license": "MIT",
   "dependencies": {
+    "@socket.io/cluster-adapter": "^0.1.0",
+    "@socket.io/sticky": "^1.0.1",
+    "cluster": "^0.7.7",
     "express": "^4.17.1",
     "got": "^11.8.2",
     "socket.io": "^4.2.0",
