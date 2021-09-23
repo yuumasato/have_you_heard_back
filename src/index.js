@@ -3,11 +3,11 @@ const path = require('path')
 const http = require('http');
 const app = express()
 const server = http.createServer(app);
-const { Server } = require("socket.io");
-const io = new Server(server);
+const io = require("socket.io")(server);
+//const io = new Server(server);
 
 app.get('/', (req, res) => {
-       res.sendFile('index.html', { root: 'public'});
+    res.sendFile('index.html', { root: 'public'});
 });
 
 // Initialize events

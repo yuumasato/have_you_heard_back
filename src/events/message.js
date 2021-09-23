@@ -2,9 +2,11 @@
 
 // Initialize event listener
 module.exports = function(io, socket) {
-    console.log("Start message event listener");
     socket.on('chat message', (msg) => {
-        console.log('message: ' + msg);
-        io.emit('chat message', msg);
+        console.log(socket.name + 'message: ' + msg);
+
+        for (let r of socket.rooms) {
+            io.to(r).emit('chat message', socket.name + ': ' + msg);
+        }
     });
 };
