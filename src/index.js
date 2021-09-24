@@ -25,6 +25,7 @@ if (cluster.isMaster) {
         serialization: "advanced",
     });
 
+    console.log(`Listening on port ${PORT}`);
     httpServer.listen(PORT);
 
     for (let i = 0; i < numWorkers; i++) {
@@ -44,6 +45,7 @@ if (cluster.isMaster) {
     const app = express()
     const server = http.createServer(app);
     const io = require("socket.io")(server);
+    const redis = require('socket.io-redis');
 
     app.get('/', (req, res) => {
         res.sendFile('index.html', { root: 'public'});
@@ -54,6 +56,9 @@ if (cluster.isMaster) {
 
     // use the cluster adapter
     io.adapter(createAdapter());
+
+    // Connect node to redis
+    io.adapter(redis(process.env.REDIS_URL || {host: 'localhost', port: 6379}));
 
     // setup connection with the primary process
     setupWorker(io);
