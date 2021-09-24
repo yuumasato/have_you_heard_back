@@ -45,20 +45,23 @@ if (cluster.isMaster) {
     const app = express()
     const server = http.createServer(app);
     const io = require("socket.io")(server);
-    const redis = require('socket.io-redis');
+    const { createAdapter } = require('@socket.io/redis-adapter');
+    const { createClient } = require('redis');
 
     app.get('/', (req, res) => {
         res.sendFile('index.html', { root: 'public'});
     });
 
-    // Initialize events
-    require("./events")(io);
+    // Connect node to redis
+    const pubClient = createClient(process.env.REDIS_URL ||
+                                   {host: 'localhost', port: 6379});
+    const subClient = pubClient.duplicate();
 
     // use the cluster adapter
-    io.adapter(createAdapter());
+    io.adapter(createAdapter(pubClient, subClient));
 
-    // Connect node to redis
-    io.adapter(redis(process.env.REDIS_URL || {host: 'localhost', port: 6379}));
+    // Initialize events
+    require('./events')(io);
 
     // setup connection with the primary process
     setupWorker(io);
