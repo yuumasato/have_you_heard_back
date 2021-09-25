@@ -3,8 +3,9 @@
 const cookie = require('cookie');
 
 // Initialize event listener
-module.exports = function(io) {
-    io.on('connection', function(socket) {
+module.exports = function(server) {
+
+    server.io.on('connection', function(socket) {
 
         const cookies = cookie.parse(socket.request.headers.cookie || "");
 
@@ -26,11 +27,11 @@ module.exports = function(io) {
         socket.emit('room', 'lobby');
 
         // Listen to these events
-        require('./disconnect')(io, socket);
-        require('./message')(io, socket);
-        require('./user')(io, socket);
-        require('./join')(io, socket);
-        require('./name')(io, socket);
+        require('./disconnect')(server, socket);
+        require('./message')(server, socket);
+        require('./user')(server, socket);
+        require('./join')(server, socket);
+        require('./name')(server, socket);
 
     });
 };

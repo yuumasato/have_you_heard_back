@@ -40,29 +40,21 @@ if (cluster.isMaster) {
     console.log(`Worker ${process.pid} started`);
 
     const express = require('express');
-    const path = require('path')
-    const http = require('http');
-    const app = express()
-    const server = http.createServer(app);
-    const io = require("socket.io")(server);
+    const ex = express()
+    const httpServer = http.createServer(ex);
+    const io = require("socket.io")(httpServer);
     const { createAdapter } = require('@socket.io/redis-adapter');
     const { createClient } = require('redis');
 
-    app.get('/', (req, res) => {
-        res.sendFile('index.html', { root: 'public'});
-    });
-
-    // Connect node to redis
+    // Connect node to redis to talk to other workers
     const pubClient = createClient(process.env.REDIS_URL ||
                                    {host: 'localhost', port: 6379});
     const subClient = pubClient.duplicate();
-
-    // use the cluster adapter
     io.adapter(createAdapter(pubClient, subClient));
 
-    // Initialize events
-    require('./events')(io);
-
-    // setup connection with the primary process
+    // Setup connection with the primary process
     setupWorker(io);
+
+    // Setup game server
+    const server = require('./server')(ex, io);
 }

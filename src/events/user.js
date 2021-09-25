@@ -1,7 +1,7 @@
 // Event: user
 
 // Initialize event listener
-module.exports = function(io, socket) {
+module.exports = function(server, socket) {
     socket.on('user', (id) => {
         console.log('user: ' + id);
 
