@@ -8,7 +8,7 @@ if (cluster.isMaster) {
     console.log(`Master ${process.pid} is running`);
 
     const httpServer = http.createServer();
-    const numWorkers = (numCPUs > 5? 5: numCPUs);
+    const numWorkers = (numCPUs > 3? 3: numCPUs);
     const PORT = process.env.PORT || 3000;
 
     // Setup sticky sessions
@@ -44,12 +44,11 @@ if (cluster.isMaster) {
     const httpServer = http.createServer(ex);
     const io = require("socket.io")(httpServer);
     const { createAdapter } = require('@socket.io/redis-adapter');
-    const { createClient } = require('redis');
+    const Redis = require('./server/redis.service.js');
 
     // Connect node to redis to talk to other workers
-    const pubClient = createClient(process.env.REDIS_URL ||
-                                   {host: 'localhost', port: 6379});
-    const subClient = pubClient.duplicate();
+    const pubClient = Redis.getPub();
+    const subClient = Redis.getSub();
     io.adapter(createAdapter(pubClient, subClient));
 
     // Setup connection with the primary process

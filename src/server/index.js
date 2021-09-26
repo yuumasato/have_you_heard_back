@@ -14,7 +14,7 @@ module.exports = function (ex, io) {
     const server = new Server(ex, io);
 
     // Initialize server API
-    require('./api')(server);
+    require('./api')(ex);
 
     // Initialize events
     require('../events')(server);
