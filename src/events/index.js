@@ -4,6 +4,6 @@
  * For each event, add the require('new_event.js')
  * Implement the event in its file
  */
-module.exports = function(server) {
-    require('./connection')(server);
+module.exports = function(io) {
+    require('./connection')(io);
 };

@@ -70,52 +70,40 @@ module.exports = class RedisService {
     static async get(key) {
         let client = RedisService.getIO();
         const getAsync = promisify(client.get).bind(client);
-
-        try {
-            let result = await getAsync(key);
-            debug(`Redis get ${key}`);
-            return result;
-        } catch (e) {
-            console.error(e);
-        }
+        let result = await getAsync(key);
+        debug(`Redis get ${key}: ${result}`);
+        return result;
     }
 
     static async set(key, value) {
         let client = RedisService.getIO();
         const setAsync = promisify(client.set).bind(client);
-
-        try {
-            let result = await setAsync(key, value);
-            debug(`Redis set ${key} : ${value}`);
-            return result;
-        } catch (e) {
-            console.error(e);
-        }
+        let result = await setAsync(key, value);
+        debug(`Redis set ${key}: ${value}`);
+        return result;
     }
 
     static async del(key) {
         let client = RedisService.getIO();
         const delAsync = promisify(client.del).bind(client);
-
-        try {
-            let result = await delAsync(key);
-            debug(`Redis del ${key}`);
-            return result;
-        } catch (e) {
-            console.error(e);
-        }
+        let result = await delAsync(key);
+        debug(`Redis del ${key}: ${result}`);
+        return result;
     }
 
     static async keys(pattern) {
         let client = RedisService.getIO();
         const keysAsync = promisify(client.keys).bind(client);
+        let result = await keysAsync(pattern);
+        debug(`Redis keys matching ${pattern}: ${result}`);
+        return result;
+    }
 
-        try {
-            let result = await keysAsync(pattern);
-            debug(`Redis keys matching ${pattern}`);
-            return result;
-        } catch (e) {
-            console.error(e);
-        }
+    static async exists(key) {
+        let client = RedisService.getIO();
+        const existAsync = promisify(client.exists).bind(client);
+        let result = await existAsync(key);
+        debug(`Redis exist key ${key}: ${result}`);
+        return result;
     }
 };

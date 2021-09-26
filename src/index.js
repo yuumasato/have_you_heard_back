@@ -55,5 +55,5 @@ if (cluster.isMaster) {
     setupWorker(io);
 
     // Setup game server
-    const server = require('./server')(ex, io);
+    require('./server')(ex, io);
 }

@@ -62,7 +62,7 @@
 </head>
 
 <body>
-    <h2 id="room">AAAAAAAAAA</h2>
+    <h3 id="room">Type /new room to create a room or /join room to join</h3>
     <ul id="messages"></ul>
     <form id="form" action=""> <input id="input" autocomplete="off" /><button>Send</button> </form>
     <script src="/socket.io/socket.io.js"></script>
@@ -97,6 +97,10 @@
                         socket.emit('join', room);
                     }
                 }
+                else if (command.startsWith('new room'))
+                {
+                    socket.emit('new room');
+                }
                 else if (command.startsWith('name '))
                 {
                     var name = command.slice(5).trim();
@@ -128,6 +132,11 @@
             input.value = '';
         });
 
+        socket.on('connect', () => {
+            post('connected');
+            socket.emit('user', undefined);
+        });
+
         socket.on('chat message', (msg) =>
         {
             post(msg);
@@ -136,13 +145,18 @@
         socket.on('user id', (id) =>
         {
             post('My ID is: ' + id);
-            document.cookie = `user=${id}`;
         });
 
-        socket.on('room', (id) =>
+        socket.on('room', (roomJSON) =>
         {
-            currentRoom.textContent = id;
-            post('Joined room ' + id);
+            console.log(`room: ${roomJSON}`);
+            if (roomJSON) {
+                room = JSON.parse(roomJSON);
+                currentRoom.textContent = room.id;
+                post('Joined room ' + room.id);
+            } else {
+                post('Room not found');
+            }
         });
 
     </script>

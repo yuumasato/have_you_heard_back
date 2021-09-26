@@ -1,15 +1,20 @@
 // Event: name
+const Users = require('../server/users.service');
 
 // Initialize event listener
-module.exports = function(server, socket) {
+module.exports = function(socket) {
     socket.on('name', (name) => {
+        let userID = `user_${socket.id}`
         console.log('name: ' + name);
 
-        for (let r of socket.rooms) {
-            server.io.to(r).emit('chat message', socket.name + ' set name to ' + name);
+        if (Users.setName(`${userID}`, name)) {
+            console.log(`${userID} set name to ${name}`);
+            for (let r of socket.rooms) {
+                socket.to(r).emit('chat message', `${socket.id} set name to ` + name);
+            }
+        } else {
+            console.error(`Failed to set user ${userID} name to ` + name);
         }
-
-        socket.name = name;
     });
 };
 

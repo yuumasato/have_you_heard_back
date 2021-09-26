@@ -1,6 +1,6 @@
 // Server main file
 
-const Server = require('./server.class');
+const Server = require('./server.service');
 
 /*
  * Instantiate the server and initialize events
@@ -11,13 +11,11 @@ const Server = require('./server.class');
  * */
 module.exports = function (ex, io) {
 
-    const server = new Server(ex, io);
+    Server.init(ex, io);
 
     // Initialize server API
     require('./api')(ex);
 
     // Initialize events
-    require('../events')(server);
-
-    return server;
+    require('../events')(io);
 };
