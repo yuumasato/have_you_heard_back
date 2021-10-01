@@ -1,5 +1,4 @@
 // Redis service
-const debug = require('debug');
 
 // Stores the singleton redis connection for this instance
 const assert = require("assert");
@@ -77,40 +76,30 @@ module.exports = class RedisService {
     static async get(key) {
         let client = RedisService.getIO();
         const getAsync = promisify(client.get).bind(client);
-        let result = await getAsync(key);
-        debug(`Redis get ${key}: ${result}`);
-        return result;
+        return getAsync(key);
     }
 
     static async set(key, value) {
         let client = RedisService.getIO();
         const setAsync = promisify(client.set).bind(client);
-        let result = await setAsync(key, value);
-        debug(`Redis set ${key}: ${value}`);
-        return result;
+        return setAsync(key, value);
     }
 
     static async del(key) {
         let client = RedisService.getIO();
         const delAsync = promisify(client.del).bind(client);
-        let result = await delAsync(key);
-        debug(`Redis del ${key}: ${result}`);
-        return result;
+        return delAsync(key);
     }
 
     static async keys(pattern) {
         let client = RedisService.getIO();
         const keysAsync = promisify(client.keys).bind(client);
-        let result = await keysAsync(pattern);
-        debug(`Redis keys matching ${pattern}: ${result}`);
-        return result;
+        return keysAsync(pattern);
     }
 
     static async exists(key) {
         let client = RedisService.getIO();
         const existAsync = promisify(client.exists).bind(client);
-        let result = await existAsync(key);
-        debug(`Redis exist key ${key}: ${result}`);
-        return result;
+        return existAsync(key);
     }
 };
