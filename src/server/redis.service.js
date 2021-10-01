@@ -24,9 +24,16 @@ module.exports = class RedisService {
 
             // Connection used for normal IO
             RedisService.instance.io = createClient(url);
+            RedisService.instance.io.on('connect', function () {
+                console.log('redis IO connected');
+            });
+
+            RedisService.instance.io.on('error', function (error) {
+                console.log(error);
+            });
 
             RedisService.instance.pub.on('connect', function () {
-                console.log('redis connected');
+                console.log('redis publisher connected');
             });
 
             RedisService.instance.pub.on('error', function (error) {
@@ -34,7 +41,7 @@ module.exports = class RedisService {
             });
 
             RedisService.instance.sub.on('connect', function () {
-                console.log('redis connected');
+                console.log('redis subscriber connected');
             });
 
             RedisService.instance.sub.on('error', function (error) {
