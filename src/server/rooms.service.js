@@ -98,8 +98,6 @@ module.exports = class Rooms {
                         reject(`User ${userID} not found`);
                     }
 
-                    console.log('user found');
-
                     // If oldRoomID is not defined but the user was in a room, make
                     // the user leave the room they were
                     if (!oldRoomID && user.room) {
@@ -122,7 +120,6 @@ module.exports = class Rooms {
                         // ownership to the next. If the room is empty, it will be
                         // destroyed.
                         if (oldRoom.ownerID === userID) {
-                            console.log('User was the owner');
                             if (oldRoom.users.length > 0) {
                                 oldRoom.ownerID = oldRoom.users[0];
                                 console.log(`User ${oldRoom.owner} is now the owner`);
@@ -139,7 +136,6 @@ module.exports = class Rooms {
                             reject(`Room ${newRoomID} not found`);
                         }
 
-                        console.log('new room found');
                         // Insert the user to the new room
                         if (!newRoom.users.includes(userID)) {
                             newRoom.users.push(userID);
@@ -151,7 +147,6 @@ module.exports = class Rooms {
                         user.room = newRoomID;
                     }
 
-                    console.log("create transaction");
                     // Create transaction
                     let multi = redisIO.multi();
                     if (oldRoom) {
@@ -175,8 +170,6 @@ module.exports = class Rooms {
                     multi.exec((err, replies) => {
                         if (err) reject(err);
 
-                        console.log('DEBUG did not throw');
-
                         if (replies) {
                             replies.forEach(function(reply, index) {
                                 console.log("SWAP @ index " + index + ": " +
@@ -193,7 +186,6 @@ module.exports = class Rooms {
                             }
                             resolve('ok');
                         } else {
-                            console.log('replies null');
                             console.error('Transaction conflict');
                         }
                     });
