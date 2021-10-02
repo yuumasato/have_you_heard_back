@@ -1,5 +1,5 @@
 {
-  "name": "echo-chat",
+  "name": "have_you_heard_back",
   "version": "0.1.0",
   "description": "A chat app",
   "main": "src",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/toshisasaki/echo-chat"
+    "url": "https://github.com/toshisasaki/have_you_heard_back"
   },
   "keywords": [
     "chat"
