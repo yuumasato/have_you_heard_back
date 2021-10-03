@@ -22,8 +22,8 @@ module.exports = function(socket) {
 
                     await Users.destroy(userID);
                     console.log(`User ${user.id} was deleted`);
-                }).catch((err) => {
-                    console.error(err);
+                }, (err) => {
+                    console.error(`Could not remove user ${userID} from room ${user.room}: ` + err);
                 });
             } else {
                 await Users.destroy(userID);

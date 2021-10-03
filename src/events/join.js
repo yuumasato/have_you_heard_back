@@ -25,8 +25,8 @@ module.exports = function(socket) {
                 io.to(newRoom.id).emit('room', JSON.stringify(newRoom));
                 console.log(`user ${user.id} joined room ${newRoom.id}`);
             }
-        }).catch ((err) => {
-            console.error(`Failed to add user ${userID} to room ${roomID}`);
+        }, (err) => {
+            console.error(`Failed to add user ${userID} to room ${roomID}: ` + err);
             socket.leave(roomID);
         });
     });

@@ -48,7 +48,7 @@ module.exports = class Rooms {
      *   - oldRoomID undefined means adding the user to a room
      *   - newRoomID undefined means removing the user from a room
      */
-    static async swapRooms(userID, oldRoomID, newRoomID, cb) {
+    static async swapRooms(userID, oldRoomID, newRoomID, cb, errCB) {
         let redisIO = Redis.getIO();
         let toWatch = [userID];
 
@@ -74,126 +74,141 @@ module.exports = class Rooms {
 
         function transaction (attempts) {
             // Watch to prevent conflicts
-            redisIO.watch(toWatch, async (err) => {
-                if (err) throw(err);
+            redisIO.watch(toWatch, async (watchErr) => {
+                try {
+                    if (watchErr) throw(watchErr);
 
-                let userPromise = Users.get(userID);
-                let oldRoomPromise = undefined;
-                let newRoomPromise = undefined;
-                let oldRoom = undefined;
-                let newRoom = undefined;
+                    let userPromise = Users.get(userID);
+                    let oldRoomPromise = undefined;
+                    let newRoomPromise = undefined;
+                    let oldRoom = undefined;
+                    let newRoom = undefined;
 
-                if (oldRoomID) {
-                    oldRoomPromise = Rooms.get(oldRoomID);
-                }
-
-                if (newRoomID) {
-                    newRoomPromise = Rooms.get(newRoomID);
-                }
-
-                let user = await userPromise;
-                if (!user) {
-                    throw new Error(`User ${userID} not found`);
-                }
-
-                // If oldRoomID is not defined but the user was in a room, make
-                // the user leave the room they were
-                if (!oldRoomID && user.room) {
-                    oldRoomID = user.room;
-                    oldRoomPromise = Rooms.get(oldRoomID);
-                }
-
-                // Remove the user from the old room
-                if (oldRoomID) {
-                    oldRoom = await oldRoomPromise;
-                    if (!oldRoom) {
-                        throw new Error(`Room ${oldRoomID} not found`);
+                    if (oldRoomID) {
+                        oldRoomPromise = Rooms.get(oldRoomID);
                     }
+
+                    if (newRoomID) {
+                        newRoomPromise = Rooms.get(newRoomID);
+                    }
+
+                    let user = await userPromise;
+                    if (!user) {
+                        throw new Error(`User ${userID} not found`);
+                    }
+
+                    // If oldRoomID is not defined but the user was in a room, make
+                    // the user leave the room they were
+                    if (!oldRoomID && user.room) {
+                        oldRoomID = user.room;
+                        oldRoomPromise = Rooms.get(oldRoomID);
+                    }
+
                     // Remove the user from the old room
-                    oldRoom.users = oldRoom.users.filter((value, index, arr) => {
-                        return value !== userID;
-                    });
-
-                    // If the user was the owner of the old room handover
-                    // ownership to the next. If the room is empty, it will be
-                    // destroyed.
-                    if (oldRoom.ownerID === userID) {
-                        if (oldRoom.users.length > 0) {
-                            oldRoom.ownerID = oldRoom.users[0];
-                            console.log(`User ${oldRoom.owner} is now the owner`);
+                    if (oldRoomID) {
+                        oldRoom = await oldRoomPromise;
+                        if (!oldRoom) {
+                            throw new Error(`Room ${oldRoomID} not found`);
                         }
-                    }
-
-                    user.room = undefined;
-                }
-
-                // Find new room
-                if (newRoomID) {
-                    newRoom = await newRoomPromise;
-                    if (!newRoom) {
-                        throw new Error(`Room ${newRoomID} not found`);
-                    }
-
-                    // Insert the user to the new room
-                    if (!newRoom.users.includes(userID)) {
-                        newRoom.users.push(userID);
-                        if (!newRoom.ownerID) {
-                            newRoom.ownerID = userID;
-                        }
-                    }
-
-                    user.room = newRoomID;
-                }
-
-                // Create transaction
-                let multi = redisIO.multi();
-                if (oldRoom) {
-                    if (oldRoom.users.length <= 0) {
-                        // TODO use autodestroy instead of imediately destroying
-                        multi.del(oldRoomID, redis.print);
-                        console.log(`Room ${oldRoomID} is empty and will be deleted`);
-                    } else {
-                        multi.set(oldRoomID, JSON.stringify(oldRoom),
-                                  redis.print);
-                    }
-                }
-
-                if (newRoom) {
-                    multi.set(newRoomID, JSON.stringify(newRoom),
-                               redis.print);
-                }
-
-                multi.set(userID, JSON.stringify(user), redis.print);
-
-                multi.exec((err, replies) => {
-                    if (err) throw(err);
-
-                    if (replies) {
-                        replies.forEach(function(reply, index) {
-                            console.log("Swap transaction @" + index + ": " +
-                                        reply.toString());
+                        // Remove the user from the old room
+                        oldRoom.users = oldRoom.users.filter((value, index, arr) => {
+                            return value !== userID;
                         });
 
-                        // If a callback was provided, call
-                        if (cb) {
-                            cb(user, oldRoom, newRoom);
+                        // If the user was the owner of the old room handover
+                        // ownership to the next. If the room is empty, it will be
+                        // destroyed.
+                        if (oldRoom.ownerID === userID) {
+                            if (oldRoom.users.length > 0) {
+                                oldRoom.ownerID = oldRoom.users[0];
+                                console.log(`User ${oldRoom.owner} is now the owner`);
+                            }
                         }
 
-                    } else {
-                        if (attempts > 0) {
-                            console.log('Room swap transaction conflict, retrying...');
-                            return transaction(--attempts);
-                        } else {
-                            return undefined;
+                        user.room = undefined;
+                    }
+
+                    // Find new room
+                    if (newRoomID) {
+                        newRoom = await newRoomPromise;
+                        if (!newRoom) {
+                            throw new Error(`Room ${newRoomID} not found`);
                         }
-                    };
-                });
+
+                        // Insert the user to the new room
+                        if (!newRoom.users.includes(userID)) {
+                            newRoom.users.push(userID);
+                            if (!newRoom.ownerID) {
+                                newRoom.ownerID = userID;
+                            }
+                        }
+
+                        user.room = newRoomID;
+                    }
+
+                    // Create transaction
+                    let multi = redisIO.multi();
+                    if (oldRoom) {
+                        if (oldRoom.users.length <= 0) {
+                            // TODO use autodestroy instead of imediately destroying
+                            multi.del(oldRoomID, redis.print);
+                            console.log(`Room ${oldRoomID} is empty and will be deleted`);
+                        } else {
+                            multi.set(oldRoomID, JSON.stringify(oldRoom),
+                                      redis.print);
+                        }
+                    }
+
+                    if (newRoom) {
+                        multi.set(newRoomID, JSON.stringify(newRoom),
+                                   redis.print);
+                    }
+
+                    multi.set(userID, JSON.stringify(user), redis.print);
+
+                    multi.exec((err, replies) => {
+                        if (err) throw(err);
+
+                        if (replies) {
+                            replies.forEach(function(reply, index) {
+                                console.log("Swap transaction @" + index + ": " +
+                                            reply.toString());
+                            });
+
+                            // If a callback was provided, call
+                            if (cb) {
+                                cb(user, oldRoom, newRoom);
+                            }
+
+                        } else {
+                            if (attempts > 0) {
+                                console.log('Room swap transaction conflict, retrying...');
+                                return transaction(--attempts);
+                            } else {
+                                return undefined;
+                            }
+                        };
+                    });
+                } catch(err) {
+                    // In case of error call the error callback
+                    if (errCB) {
+                        errCB(err);
+                    } else {
+                        console.error(err);
+                    }
+                }
             });
         }
 
         // Retry up to 5 times
-        let resultPromise = Promise.resolve(5);
-        resultPromise = resultPromise.then(transaction);
+        let resultPromise = new Promise((resolve, reject) => {
+            try {
+                transaction(5);
+                resolve('ok');
+            } catch (err) {
+                reject(err);
+            }
+        });
 
         return resultPromise;
     }
@@ -202,7 +217,7 @@ module.exports = class Rooms {
      * Create a new room and call the providede callback passing the created
      * room object.
      * */
-    static async create(cb) {
+    static async create(cb, errCB) {
         // Create new object
         let redisIO = Redis.getIO();
 
@@ -214,64 +229,76 @@ module.exports = class Rooms {
 
             // Watch to prevent conflicts
             redisIO.watch(roomID, async (watchErr) => {
-                if (watchErr) {
-                    throw(watchErr);
-                }
+                try {
+                    if (watchErr) throw (watchErr);
 
-                let exist = await Redis.exists(roomID);
-                if (exist) {
-                    // Try again
-                    return transaction(--attempts);
-                }
-
-                // Create transaction
-                let room = new Room(roomID);
-                let multi = redisIO.multi();
-                multi.set(roomID, JSON.stringify(room), redis.print);
-                multi.exec((multiErr, replies) => {
-                    if (multiErr) {
-                        throw(multiErr);
+                    let exist = await Redis.exists(roomID);
+                    if (exist) {
+                        // Try again
+                        return transaction(--attempts);
                     }
 
-                    if (replies) {
-                        replies.forEach(function(reply, index) {
-                            console.log('Room create transaction: ' + reply.toString());
-                        });
-
-                        // In case of success, call the callback, if provided
-                        if (cb) {
-                            cb(room);
+                    // Create transaction
+                    let room = new Room(roomID);
+                    let multi = redisIO.multi();
+                    multi.set(roomID, JSON.stringify(room), redis.print);
+                    multi.exec((multiErr, replies) => {
+                        if (multiErr) {
+                            throw(multiErr);
                         }
 
-                        return room;
-                    } else {
-                        if (attempts > 0) {
-                            console.log('Room create transaction conflict, retrying...');
-                            return transaction(--attempts);
+                        if (replies) {
+                            replies.forEach(function(reply, index) {
+                                console.log('Room create transaction: ' + reply.toString());
+                            });
+
+                            // In case of success, call the callback, if provided
+                            if (cb) {
+                                cb(room);
+                            }
+
+                            return room;
                         } else {
-                            return undefined;
+                            if (attempts > 0) {
+                                console.log('Room create transaction conflict, retrying...');
+                                return transaction(--attempts);
+                            } else {
+                                return undefined;
+                            }
                         }
+                    });
+                } catch(err) {
+                    if (errCB) {
+                        errCB(err);
+                    } else {
+                        console.error(err);
                     }
-                });
+                }
             });
         }
 
         // Retry up to 5 times
-        let resultPromise = Promise.resolve(5);
-        resultPromise = resultPromise.then(transaction);
+        let resultPromise = new Promise((resolve, reject) => {
+            try {
+                transaction(5);
+                resolve('ok');
+            } catch(err) {
+                reject(err);
+            }
+        });
 
         return resultPromise;
     }
 
-    static async addUser(userID, roomID, cb) {
-        return Rooms.swapRooms(userID, undefined, roomID, cb);
+    static async addUser(userID, roomID, cb, errCB) {
+        return Rooms.swapRooms(userID, undefined, roomID, cb, errCB);
     }
 
-    static async removeUser(userID, roomID, cb) {
-        return Rooms.swapRooms(userID, roomID, undefined, cb);
+    static async removeUser(userID, roomID, cb, errCB) {
+        return Rooms.swapRooms(userID, roomID, undefined, cb, errCB);
     }
 
-    static async destroy(roomID) {
+    static async destroy(roomID, cb, errCB) {
         let io = Server.getIO();
         let redisIO = Redis.getIO();
         let toWatch = [roomID];
@@ -279,63 +306,77 @@ module.exports = class Rooms {
         function transaction (attempts) {
             // User transaction to avoid conflicts
             redisIO.watch(toWatch, async (err, result) => {
-                if (err) reject(err);
+                try {
+                    if (err) throw(err);
 
-                let room = await Rooms.get(roomID);
-                if (!room) {
-                    throw new Error(`Room ${roomID} not found`);
-                }
-
-                // Empty rooms can be removed immediately
-                if (room.users.length == 0 ) {
-                    return await Redis.del(roomID);
-                }
-
-                let multi = redisIO.multi();
-                toWatch = toWatch.concat(room.users);
-
-                // Remove users from the room
-                for (let userID of room.users) {
-                    let user = await Users.get(userID);
-                    if (user) {
-                        user.room = undefined;
-                        multi.set(userID, JSON.stringify(user),
-                                  redis.print);
+                    let room = await Rooms.get(roomID);
+                    if (!room) {
+                        throw new Error(`Room ${roomID} not found`);
                     }
-                }
 
-                multi.del(roomID, redis.print);
-                multi.exec((err, replies) => {
-                    if (err) reject(err);
+                    // Empty rooms can be removed immediately
+                    if (room.users.length == 0 ) {
+                        return await Redis.del(roomID);
+                    }
 
-                    if (replies) {
-                        replies.forEach(function(reply, index) {
-                            console.log("DESTROY @ index " + index + ": " +
-                                        reply.toString());
-                        });
+                    let multi = redisIO.multi();
+                    toWatch = toWatch.concat(room.users);
 
-                        if (cb) {
-                            cb(room);
+                    // Remove users from the room
+                    for (let userID of room.users) {
+                        let user = await Users.get(userID);
+                        if (user) {
+                            user.room = undefined;
+                            multi.set(userID, JSON.stringify(user),
+                                      redis.print);
                         }
+                    }
 
-                        // TODO put this in the callback
-                        io.socketsLeave(roomID);
-                    } else {
-                        if (attempts > 0) {
-                            console.log('Room destroy transaction conflict, retrying...');
-                            return transaction(--attempts);
+                    multi.del(roomID, redis.print);
+                    multi.exec((err, replies) => {
+                        if (err) reject(err);
+
+                        if (replies) {
+                            replies.forEach(function(reply, index) {
+                                console.log("DESTROY @ index " + index + ": " +
+                                            reply.toString());
+                            });
+
+                            if (cb) {
+                                cb(room);
+                            }
+
+                            // TODO put this in the callback
+                            io.socketsLeave(roomID);
                         } else {
-                            return undefined;
-                        }
+                            if (attempts > 0) {
+                                console.log('Room destroy transaction conflict, retrying...');
+                                return transaction(--attempts);
+                            } else {
+                                return undefined;
+                            }
 
+                        }
+                    });
+                } catch(err) {
+                    if (errCB) {
+                        errCB(err);
+                    } else {
+                        console.error(err);
                     }
-                });
+                }
             });
         }
 
         // Retry up to 5 times
-        let resultPromise = Promise.resolve(5);
-        resultPromise = resultPromise.then(transaction);
+        let resultPromise = new Promise((resolve, reject) => {
+            try {
+                transaction(5);
+                resolve('ok');
+            } catch(err) {
+                reject(err);
+            }
+        });
 
         return resultPromise;
     }

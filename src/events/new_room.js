@@ -30,14 +30,14 @@ module.exports = function(socket) {
                 }
 
                 console.log(`user ${user.id} joined room ${newRoom.id}`);
-            }).catch ((err) => {
+            }, (err) => {
                 // Rollback
-                console.error(`Failed to add user ${userID} to room ${room.id}`);
+                console.error(`Failed to add user ${userID} to room ${room.id}: ` + err);
                 socket.leave(room.id);
                 Rooms.destroy(room.id);
             });
-        }).catch((err) => {
-            console.error('Could not create new room');
+        }, (err) => {
+            console.error('Could not create new room: ' + err);
         });
     });
 };
