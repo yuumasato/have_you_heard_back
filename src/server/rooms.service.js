@@ -100,6 +100,7 @@ module.exports = class Rooms {
                     // If oldRoomID is not defined but the user was in a room, make
                     // the user leave the room they were
                     if (!oldRoomID && user.room) {
+                        toWatch.push(user.room);
                         oldRoomID = user.room;
                         oldRoomPromise = Rooms.get(oldRoomID);
                     }

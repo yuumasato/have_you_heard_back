@@ -21,8 +21,8 @@ module.exports = function(socket) {
             } else {
                 console.error('Could not create user');
             }
-        }).catch((error) => {
-            console.error('Could not create user: ' + error);
+        }, (err) => {
+            console.error('Could not create user: ' + err);
         });
     });
 };
