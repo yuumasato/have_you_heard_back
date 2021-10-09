@@ -9,14 +9,6 @@ module.exports = function(ex) {
         res.sendFile('index.html', { root: 'public'});
     });
 
-    ex.get('/rooms', (req, res) => {
-        res.json(server.rooms);
-    });
-
-    ex.get('/users', (req, res) => {
-        res.json(server.users);
-    });
-
     ex.get('/redis/set', async (req, res) => {
         key = req.query.key;
         value = req.query.value;
