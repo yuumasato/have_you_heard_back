@@ -15,9 +15,12 @@ module.exports = function(socket) {
                 Rooms.removeUser(userID, user.room, async (user, oldRoom, newRoom) => {
                     let io = Server.getIO();
                     // Update user in socket.io if the transaction was successful
-                    if (oldRoom && oldRoom.users.length > 0) {
-                        io.to(oldRoom.id).emit('room', JSON.stringify(oldRoom));
-                        console.log(`User ${user.id} left the room ${oldRoom.id}`);
+                    if (oldRoom) {
+                        socket.leave(oldRoom.id);
+                        console.log(`user ${user.id} left the room ${oldRoom.id}`);
+                        if (oldRoom.users.length > 0) {
+                            io.to(oldRoom.id).emit('room', JSON.stringify(oldRoom));
+                        }
                     }
 
                     await Users.destroy(userID);

@@ -16,9 +16,12 @@ module.exports = function(socket) {
             let io = Server.getIO();
 
             // Update user in socket.io if the transaction was successful
-            if (oldRoom && oldRoom.users.length > 0) {
-                io.to(oldRoom.id).emit('room', JSON.stringify(oldRoom));
+            if (oldRoom) {
+                socket.leave(oldRoom.id);
                 console.log(`user ${user.id} left the room ${oldRoom.id}`);
+                if (oldRoom.users.length > 0) {
+                    io.to(oldRoom.id).emit('room', JSON.stringify(oldRoom));
+                }
             }
 
             if (newRoom) {
