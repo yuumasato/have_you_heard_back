@@ -16,6 +16,7 @@ module.exports = function(socket) {
                 // Listen to these events
                 require('./message')(socket);
                 require('./join')(socket);
+                require('./leave')(socket);
                 require('./new_room')(socket);
                 require('./name')(socket);
             } else {
