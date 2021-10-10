@@ -6,6 +6,7 @@ const Room = require('./room.class');
 const Redis = require('./redis.service');
 const Server = require('./server.service');
 const Users = require('./users.service');
+const Games = require('./games.service');
 
 // The class is given when something requires this module
 module.exports = class Rooms {
@@ -111,6 +112,7 @@ module.exports = class Rooms {
                         if (!oldRoom) {
                             throw new Error(`Room ${oldRoomID} not found`);
                         }
+
                         // Remove the user from the old room
                         oldRoom.users = oldRoom.users.filter((value, index, arr) => {
                             return value !== userID;
@@ -397,26 +399,22 @@ module.exports = class Rooms {
             return undefined;
         }
 
-        let userPromises = [];
+        let allPromises = [];
         for (let user of room.users) {
-            userPromises.push(Users.get(user));
+            allPromises.push(Users.get(user));
         }
 
-        if (room.game) {
-            //TODO get game state
-        }
-
-        Promise.all(userPromises).then((completeUsers) => {
-            room.users = completeUsers;
+        Promise.all(allPromises).then((values) => {
+            room.users = values;
 
             if (cb) {
                 cb(room);
             }
         }).catch((err) => {
             if (errCB) {
-                errCB(new Error('Invalid room object'));
+                errCB(new Error(`Could not get users for room ${room.id}`));
             } else {
-                console.error('Invalid room object');
+                console.error(`Could not get users for room ${room.id}`);
             }
             return undefined;
         });
