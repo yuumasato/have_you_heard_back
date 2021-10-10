@@ -107,6 +107,9 @@
         <form class="form_s" id="newRoomForm" action="">
             <button class="button_s">New Room</button>
         </form>
+        <form class="form_s" id="leaveForm" action="">
+            <button class="button_s">Leave Room</button>
+        </form>
         <form class="form_s" id="joinForm" action="">
             <input class="input" id="joinInput" autocomplete="off" />
             <button class="button_s">Join room</button>
@@ -115,7 +118,7 @@
             <input class="input" id="nameInput" autocomplete="off" />
             <button class="button_s">Set name</button>
         </form>
-        <h4 id="room">Room</h4>
+        <h4 id="room">Lobby</h4>
         <ul class="cleanList" id="roomPlayers">
         </ul>
     </div>
@@ -136,7 +139,8 @@
     <script>
         var socket = io();
 
-        var messageForm = document.getElementById('newRoomForm');
+        var newRoomForm = document.getElementById('newRoomForm');
+        var leaveForm = document.getElementById('leaveForm');
 
         var messageForm = document.getElementById('messageForm');
         var messageInput = document.getElementById('messageInput');
@@ -179,6 +183,13 @@
         {
             e.preventDefault();
             socket.emit('new room');
+        });
+
+        leaveForm.addEventListener('submit', function(e)
+        {
+            e.preventDefault();
+            socket.emit('leave');
+            currentRoom.textContent = 'Lobby';
         });
 
         messageForm.addEventListener('submit', function(e)
