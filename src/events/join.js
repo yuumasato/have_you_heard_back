@@ -12,7 +12,7 @@ module.exports = function(socket) {
         // Join the socket before adding to receive back the broadcast with the
         // state
         socket.join(roomID);
-        Rooms.swapRooms(userID, undefined, roomID, (user, oldRoom, newRoom) => {
+        Rooms.swapRooms(userID, undefined, roomID, async (user, oldRoom, newRoom) => {
             let io = Server.getIO();
 
             // Update user in socket.io if the transaction was successful
@@ -20,13 +20,23 @@ module.exports = function(socket) {
                 socket.leave(oldRoom.id);
                 console.log(`user ${user.id} left the room ${oldRoom.id}`);
                 if (oldRoom.users.length > 0) {
-                    io.to(oldRoom.id).emit('room', JSON.stringify(oldRoom));
+                    // Replace user IDs with complete user JSONs and send
+                    Rooms.complete(oldRoom, (room) => {
+                        io.to(room.id).emit('room', JSON.stringify(room));
+                    }, (err) => {
+                        console.error(err);
+                    });
                 }
             }
 
             if (newRoom) {
-                io.to(newRoom.id).emit('room', JSON.stringify(newRoom));
-                console.log(`user ${user.id} joined room ${newRoom.id}`);
+                // Replace user IDs with complete user JSONs and send
+                Rooms.complete(newRoom, (room) => {
+                    io.to(room.id).emit('room', JSON.stringify(room));
+                    console.log(`user ${user.id} joined room ${room.id}`);
+                }, (err) => {
+                    console.error(err);
+                });
             }
         }, (err) => {
             console.error(`Failed to add user ${userID} to room ${roomID}: ` + err);

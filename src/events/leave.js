@@ -13,14 +13,20 @@ module.exports = function(socket) {
         if (user) {
             if (user.room) {
                 Rooms.removeUser(userID, user.room, async (user, oldRoom, newRoom) => {
-                    // Leave the socket before broadcasting his leave
-                    socket.leave(oldRoom.id);
-
                     let io = Server.getIO();
                     // Update user in socket.io if the transaction was successful
-                    if (oldRoom && oldRoom.users.length > 0) {
-                        io.to(oldRoom.id).emit('room', JSON.stringify(oldRoom));
+                    if (oldRoom) {
+                        // Leave the socket before broadcasting his leave
+                        socket.leave(oldRoom.id);
                         console.log(`User ${user.id} left the room ${oldRoom.id}`);
+                        if (oldRoom.users.length > 0) {
+                            // Replace user IDs with complete user JSONs and send
+                            Rooms.complete(oldRoom, (room) => {
+                                io.to(room.id).emit('room', JSON.stringify(room));
+                            }, (err) => {
+                                console.error(err);
+                            });
+                        }
                     }
 
                 }, (err) => {

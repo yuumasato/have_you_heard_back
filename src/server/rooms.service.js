@@ -381,4 +381,44 @@ module.exports = class Rooms {
 
         return resultPromise;
     }
+
+
+    /**
+     * Complete the room object, getting the user and game state
+     * The user can provide callbacks for success and error cases
+     * */
+    static async complete(room, cb, errCB) {
+        if (!room) {
+            if (errCB) {
+                errCB(new Error('Invalid room object'));
+            } else {
+                console.error('Invalid room object');
+            }
+            return undefined;
+        }
+
+        let userPromises = [];
+        for (let user of room.users) {
+            userPromises.push(Users.get(user));
+        }
+
+        if (room.game) {
+            //TODO get game state
+        }
+
+        Promise.all(userPromises).then((completeUsers) => {
+            room.users = completeUsers;
+
+            if (cb) {
+                cb(room);
+            }
+        }).catch((err) => {
+            if (errCB) {
+                errCB(new Error('Invalid room object'));
+            } else {
+                console.error('Invalid room object');
+            }
+            return undefined;
+        });
+    }
 };

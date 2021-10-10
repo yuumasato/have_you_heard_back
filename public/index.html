@@ -173,7 +173,7 @@
             for (let p of players)
             {
                 var item = document.createElement('li');
-                item.textContent = p;
+                item.textContent = p.name;
                 newPlayers.appendChild(item);
             }
             roomPlayers.innerHTML = newPlayers.innerHTML;

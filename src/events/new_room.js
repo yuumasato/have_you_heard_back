@@ -25,15 +25,24 @@ module.exports = function(socket) {
                     socket.leave(oldRoom.id);
                     console.log(`user ${user.id} left the room ${oldRoom.id}`);
                     if (oldRoom.users.length > 0) {
-                        io.to(oldRoom.id).emit('room', JSON.stringify(oldRoom));
+                        // Replace user IDs with complete user JSONs and send
+                        Rooms.complete(oldRoom, (room) => {
+                            io.to(room.id).emit('room', JSON.stringify(room));
+                        }, (err) => {
+                            console.error(err);
+                        });
                     }
                 }
 
                 if (newRoom) {
-                    io.to(newRoom.id).emit('room', JSON.stringify(newRoom));
+                    // Replace user IDs with complete user JSONs and send
+                    Rooms.complete(newRoom, (room) => {
+                        io.to(room.id).emit('room', JSON.stringify(room));
+                        console.log(`user ${user.id} joined room ${room.id}`);
+                    }, (err) => {
+                        console.error(err);
+                    });
                 }
-
-                console.log(`user ${user.id} joined room ${newRoom.id}`);
             }, (err) => {
                 // Rollback
                 console.error(`Failed to add user ${userID} to room ${room.id}: ` + err);

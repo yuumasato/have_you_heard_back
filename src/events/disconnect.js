@@ -19,7 +19,12 @@ module.exports = function(socket) {
                         socket.leave(oldRoom.id);
                         console.log(`user ${user.id} left the room ${oldRoom.id}`);
                         if (oldRoom.users.length > 0) {
-                            io.to(oldRoom.id).emit('room', JSON.stringify(oldRoom));
+                            // Replace user IDs with complete user JSONs and send
+                            Rooms.complete(oldRoom, (room) => {
+                                io.to(room.id).emit('room', JSON.stringify(room));
+                            }, (err) => {
+                                console.error(err);
+                            });
                         }
                     }
 
