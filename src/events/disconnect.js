@@ -2,6 +2,7 @@
 const Users = require('../server/users.service');
 const Rooms = require('../server/rooms.service');
 const Server = require('../server/server.service');
+const Games = require('../server/games.service');
 
 // Initialize event listener
 module.exports = function(socket) {
@@ -11,6 +12,22 @@ module.exports = function(socket) {
 
         let user = await Users.get(userID);
         if (user) {
+            if (user.game) {
+
+                //TODO Update game state
+
+                Games.removePlayer(userID, user.game, async (user, game) => {
+                    let io = Server.getIO();
+                    // If the user was in the game
+                    if (game) {
+                        console.debug(`game:\n` + JSON.stringify(game, null, 2));
+                        console.log(`user ${user.id} left the game ${game.id}`);
+                    }
+                }, (err) => {
+                    console.error(`Could not remove user ${userID} from game ${user.game}: ` + err);
+                });
+            }
+
             if (user.room) {
                 Rooms.removeUser(userID, user.room, async (user, oldRoom, newRoom) => {
                     let io = Server.getIO();

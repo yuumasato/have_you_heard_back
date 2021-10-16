@@ -100,23 +100,33 @@ module.exports = class Games {
 
                     Promise.all(allPromises).then(async (values) => {
 
-                        // Add only relevant information
-                        for (let v of values) {
-                            game.players.push(
-                                {
-                                    name: v.name,
-                                    id: v.id,
-                                }
-                            );
-                        }
+                        let users = values;
 
                         game.headlines = await headlines;
+                        if (!game.headlines) {
+                            throw new Error(`Could not get headlines`);
+                        }
+
+                        // Create transaction
+                        let multi = redisIO.multi();
+
+                        // Add only relevant information
+                        for (let u of users) {
+                            game.players.push(
+                                {
+                                    name: u.name,
+                                    id: u.id,
+                                }
+                            );
+
+                            // Add the game ID to each user in the game
+                            u.game = gameID;
+                            multi.set(u.id, JSON.stringify(u), redis.print);
+                        }
 
                         // TODO decide if this is necessary
                         room.game = gameID;
 
-                        // Create transaction
-                        let multi = redisIO.multi();
                         multi.set(gameID, JSON.stringify(game), redis.print);
                         // TODO decide if this is necessary
                         multi.set(room.id, JSON.stringify(room), redis.print);
@@ -166,6 +176,110 @@ module.exports = class Games {
             }
         });
 
+        return resultPromise;
+    }
+
+    static async removePlayer(userID, gameID, cb, errCB) {
+        // Create new object
+        let redisIO = Redis.getIO();
+
+        async function transaction(attempts) {
+            // Watch to prevent conflicts
+            redisIO.watch(userID, gameID, async (watchErr) => {
+                try {
+                    if (watchErr) throw (watchErr);
+
+                    let game = await Games.get(gameID);
+                    if (!game) {
+                        throw new Error(`Game ${gameID} not found`);
+                    }
+
+                    let user = await Users.get(userID);
+                    if (!user) {
+                        throw new Error(`User ${userID} not found`);
+                    }
+
+                    if (!user.game) {
+                        throw new Error(`User ${userID} was not in a game`);
+                    }
+
+                    if (user.game != gameID) {
+                        throw new Error(`User ${userID} was not in game ${gameID}`);
+                    }
+
+                    let found = false;
+                    // Remove the player from the game only if the player was in
+                    // the game
+                    game.players.find((p, i) => {
+                        if (p.id === userID) {
+                            found = true;
+                        }
+                    });
+
+                    // Remove game info from user
+                    delete(user.game);
+
+                    // Create transaction
+                    let multi = redisIO.multi();
+                    multi.set(userID, JSON.stringify(user), redis.print);
+
+                    // If the player was in the game, remove
+                    if (found) {
+                        game.players = game.players.filter((p) => {
+                            return p.id !== userID;
+                        });
+                        multi.set(gameID, JSON.stringify(game), redis.print);
+                    } else {
+                        // User was not in the game anymore, set as undefined
+                        // for the callback call
+                        game = undefined;
+                    }
+
+                    multi.exec((multiErr, replies) => {
+                        if (multiErr) {
+                            throw(multiErr);
+                        }
+
+                        if (replies) {
+                            replies.forEach(function(reply, index) {
+                                console.log('Game remove player transaction: ' +
+                                            reply.toString());
+                            });
+
+                            // In case of success, call the callback, if provided
+                            if (cb) {
+                                cb(user, game);
+                            }
+
+                            return game;
+                        } else {
+                            if (attempts > 0) {
+                                console.log('Game create transaction conflict, retrying...');
+                                return transaction(--attempts);
+                            } else {
+                                throw new Error('Maximum number of attempts tried for game create transaction');
+                            }
+                        }
+                    });
+                } catch(err) {
+                    if (errCB) {
+                        errCB(err);
+                    } else {
+                        console.error(err);
+                    }
+                }
+            });
+        }
+
+        // Retry up to 5 times
+        let resultPromise = new Promise((resolve, reject) => {
+            try {
+                transaction(5);
+                resolve('ok');
+            } catch(err) {
+                reject(err);
+            }
+        });
         return resultPromise;
     }
 }
