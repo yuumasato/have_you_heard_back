@@ -160,6 +160,7 @@
         <h4 id="gameID"></h4>
         <ul class="cleanList" id="gamePlayers">
         </ul>
+        <h5 id="gamePersona"></h5>
         <h5 id="gameInstructions"></h5>
         <form class="form_game" id="gameForm" action="">
         </form>
@@ -204,6 +205,7 @@
         var gameID = document.getElementById('gameID');
         var gameInstructions = document.getElementById('gameInstructions');
         var gamePlayers = document.getElementById('gamePlayers');
+        var gamePersona = document.getElementById('gamePersona');
 
         function post(msg)
         {
@@ -239,7 +241,30 @@
             gamePlayers.innerHTML = newPlayers.innerHTML;
 
             // TODO show stage
+            showPersonas();
         };
+
+        function showPersonas()
+        {
+            let personas = ['Tia do Zap', 'Antivacina', 'Vegana', 'Salvio',
+                        'Eron Must', 'Tump', 'Lulo', 'Bonosaro'];
+
+            for (let p of personas) {
+                var b = document.createElement("button");
+                b.setAttribute("type", "submit");
+                b.setAttribute("value", p);
+                b.setAttribute("class", "button_s");
+                b.textContent = p;
+                gameForm.appendChild(b);
+            }
+
+            gameForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                socket.emit('vote persona', e.submitter.value);
+                post(`Voted on ${e.submitter.value}`);
+            });
+            gameInstructions.textContent = 'Vote persona';
+        }
 
         newRoomForm.addEventListener('submit', function(e)
         {
@@ -340,6 +365,19 @@
             else
             {
                 post('Game not found');
+            }
+        });
+
+        socket.on('persona', (persona) =>
+        {
+            console.log(`persona: ${persona}`);
+            if (persona)
+            {
+                gamePersona.textContent = `Complete como: ${persona}`;
+            }
+            else
+            {
+                post('Invalid persona message');
             }
         });
     </script>

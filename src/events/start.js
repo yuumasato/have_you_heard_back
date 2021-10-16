@@ -6,7 +6,7 @@ const Server = require('../server/server.service');
 
 // Initialize event listener
 module.exports = function(socket) {
-    socket.on('start', async () => {
+    socket.on('start', async function start_handler() {
         let userID = `user_${socket.id}`;
         let user = await Users.get(userID);
 
@@ -44,7 +44,7 @@ module.exports = function(socket) {
         }
 
         // Provide the callback to call when successful
-        Games.create(room, (newRoom, game) => {
+        Games.create(room, async (newRoom, game) => {
             let io = Server.getIO();
 
             io.to(room.id).emit('game', JSON.stringify(game));

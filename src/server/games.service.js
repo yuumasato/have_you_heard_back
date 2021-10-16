@@ -282,4 +282,85 @@ module.exports = class Games {
         });
         return resultPromise;
     }
+
+    /**
+     * Register the vote for a persona
+     * */
+    static async votePersona(user, game, persona, cb, errCB) {
+        // Create new object
+        let redisIO = Redis.getIO();
+        let toWatch = [user.id, game.id];
+
+        async function transaction(attempts) {
+            // Watch to prevent conflicts
+            redisIO.watch(toWatch, async (watchErr) => {
+                try {
+                    if (watchErr) {
+                        throw(watchErr);
+                    }
+
+                    let updated = false;
+                    game.players.find( (p) => {
+                        if (p.id == user.id) {
+
+                            if (p.personaVote) {
+                                throw new Error(`User ${user.id} already voted for persona`);
+                            }
+
+                            p.personaVote = persona;
+                            updated = true;
+                        }
+                    });
+
+                    // Create transaction
+                    let multi = redisIO.multi();
+                    multi.set(game.id, JSON.stringify(game), redis.print);
+                    multi.exec((multiErr, replies) => {
+                        if (multiErr) {
+                            throw(multiErr);
+                        }
+
+                        if (replies) {
+                            replies.forEach(function(reply, index) {
+                                console.log('Vote persona transaction: ' + reply.toString());
+                            });
+
+                            // In case of success, call the callback, if provided
+                            if (cb) {
+                                cb(game);
+                            }
+
+                            return game;
+                        } else {
+                            if (attempts > 0) {
+                                console.log('Vote persona transaction conflict, retrying...');
+                                return transaction(--attempts);
+                            } else {
+                                return undefined;
+                            }
+                        }
+                    });
+                } catch(err) {
+                    if (errCB) {
+                        errCB(err);
+                    } else {
+                        console.error(err);
+                    }
+                }
+            });
+        }
+
+        // Retry up to 5 times
+        let resultPromise = new Promise((resolve, reject) => {
+            try {
+                transaction(5);
+                resolve('ok');
+            } catch(err) {
+                reject(err);
+            }
+        });
+
+        return resultPromise;
+    }
+
 }

@@ -20,6 +20,7 @@ module.exports = function(socket) {
                 require('./new_room')(socket);
                 require('./name')(socket);
                 require('./start')(socket);
+                require('./vote_persona')(socket);
             } else {
                 console.error('Could not create user');
             }
