@@ -22,6 +22,7 @@ module.exports = function(socket) {
                 if (oldRoom.users.length > 0) {
                     // Replace user IDs with complete user JSONs and send
                     Rooms.complete(oldRoom, (room) => {
+                        console.debug(`room:\n` + JSON.stringify(room, null, 2));
                         io.to(room.id).emit('room', JSON.stringify(room));
                     }, (err) => {
                         console.error(err);
@@ -32,6 +33,7 @@ module.exports = function(socket) {
             if (newRoom) {
                 // Replace user IDs with complete user JSONs and send
                 Rooms.complete(newRoom, (room) => {
+                    console.debug(`room:\n` + JSON.stringify(room, null, 2));
                     io.to(room.id).emit('room', JSON.stringify(room));
                     console.log(`user ${user.id} joined room ${room.id}`);
                 }, (err) => {

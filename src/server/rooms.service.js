@@ -405,7 +405,18 @@ module.exports = class Rooms {
         }
 
         Promise.all(allPromises).then((values) => {
-            room.users = values;
+            // Only add relevant information to the room
+            let newUsers = []
+            for (let v of values) {
+                newUsers.push(
+                    {
+                        id: v.id,
+                        name: v.name,
+                    }
+                )
+            }
+
+            room.users = newUsers;
 
             if (cb) {
                 cb(room);
