@@ -53,6 +53,16 @@
             backdrop-filter: blur(10px);
         }
 
+        .form_game {
+            background: rgba(0, 0, 0, 0.15);
+            padding: 0.25rem;
+            position: static;
+            display: flex;
+            height: 3rem;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+        }
+
         .input {
             border: none;
             padding: 0 1rem;
@@ -147,6 +157,12 @@
         <h4 id="room">Lobby</h4>
         <ul class="cleanList" id="roomPlayers">
         </ul>
+        <h4 id="gameID"></h4>
+        <ul class="cleanList" id="gamePlayers">
+        </ul>
+        <h5 id="gameInstructions"></h5>
+        <form class="form_game" id="gameForm" action="">
+        </form>
     </div>
 
     <div class="chat" id="chat">
@@ -182,8 +198,12 @@
         var currentRoom = document.getElementById('room');
 
         var roomPlayers = document.getElementById('roomPlayers');
-        var players = document.getElementById('players');
         var rooms = document.getElementById('rooms');
+
+        var gameForm = document.getElementById('gameForm');
+        var gameID = document.getElementById('gameID');
+        var gameInstructions = document.getElementById('gameInstructions');
+        var gamePlayers = document.getElementById('gamePlayers');
 
         function post(msg)
         {
@@ -195,16 +215,30 @@
             div.scrollTop = div.scrollHeight - div.clientHeight;
         };
 
-        function showPlayers(players)
+        function showRoom(room)
         {
             newPlayers = document.createElement('ul');
-            for (let p of players)
+            for (let p of room.users)
             {
                 var item = document.createElement('li');
                 item.textContent = p.name;
                 newPlayers.appendChild(item);
             }
             roomPlayers.innerHTML = newPlayers.innerHTML;
+        };
+
+        function showGame(game)
+        {
+            newPlayers = document.createElement('ul');
+            for (let p of game.players)
+            {
+                var item = document.createElement('li');
+                item.textContent = p.name;
+                newPlayers.appendChild(item);
+            }
+            gamePlayers.innerHTML = newPlayers.innerHTML;
+
+            // TODO show stage
         };
 
         newRoomForm.addEventListener('submit', function(e)
@@ -285,11 +319,27 @@
                 room = JSON.parse(roomJSON);
                 currentRoom.textContent = room.id;
                 post('Joined room ' + room.id);
-                showPlayers(room.users);
+                showRoom(room);
             }
             else
             {
                 post('Room not found');
+            }
+        });
+
+        socket.on('game', (gameJSON) =>
+        {
+            console.log(`room: ${gameJSON}`);
+            if (gameJSON)
+            {
+                game = JSON.parse(gameJSON);
+                gameID.textContent = game.id;
+                post('Game started');
+                showGame(game);
+            }
+            else
+            {
+                post('Game not found');
             }
         });
     </script>
