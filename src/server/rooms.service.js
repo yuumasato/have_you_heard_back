@@ -152,13 +152,11 @@ module.exports = class Rooms {
                     // Create transaction
                     let multi = redisIO.multi();
                     if (oldRoom) {
+                        multi.set(oldRoomID, JSON.stringify(oldRoom), redis.print);
                         if (oldRoom.users.length <= 0) {
-                            // TODO use autodestroy instead of imediately destroying
-                            multi.del(oldRoomID, redis.print);
+                            // If the room became empty, set expiration time
+                            multi.expire(oldRoomID, 300, redis.print);
                             console.log(`Room ${oldRoomID} is empty and will be deleted`);
-                        } else {
-                            multi.set(oldRoomID, JSON.stringify(oldRoom),
-                                      redis.print);
                         }
                     }
 
