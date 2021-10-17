@@ -38,19 +38,19 @@ module.exports = function(socket) {
         Games.answer(user, game, answer, (retGame) => {
             console.log(`Received answer ${answer}`);
 
-            let allVoted = true;
+            let allAnswered = true;
             let answers = {};
             // Check if all the players answered
             for (let p of retGame.players) {
                 if (p.answer) {
                     answers[p.id] = p.answer['answer'];
                 } else {
-                    allVoted = false;
+                    allAnswered = false;
                     break;
                 }
             }
 
-            if (allVoted) {
+            if (allAnswered) {
                 console.log(`All answers gathered for game ${game.id}`);
                 console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 let io = Server.getIO();

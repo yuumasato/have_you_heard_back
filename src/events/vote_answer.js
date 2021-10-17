@@ -1,4 +1,4 @@
-// Event: vote persona
+// Event: vote answer
 const Games = require('../server/games.service');
 const Users = require('../server/users.service');
 const Rooms = require('../server/rooms.service');
@@ -6,7 +6,7 @@ const Server = require('../server/server.service');
 
 // Initialize event listener
 module.exports = function(socket) {
-    socket.on('vote persona', async function vote_persona_handler(persona) {
+    socket.on('vote answer', async function vote_answer_handler(chosen) {
         let userID = `user_${socket.id}`;
         let user = await Users.get(userID);
 
@@ -35,18 +35,18 @@ module.exports = function(socket) {
         }
 
         // Provide the callback to call when successful
-        Games.votePersona(user, game, persona, (retGame) => {
-            console.log(`Received vote for ${persona}`);
+        Games.voteAnswer(user, game, chosen, (retGame) => {
+            console.log(`Received vote for ${chosen}`);
 
-            let histogram = {};
+            let sumVotes = {};
             let allVoted = true;
             // Check if all the players voted
             for (let p of retGame.players) {
-                if (p.personaVote) {
-                    if (p.personaVote in histogram) {
-                        histogram[p.personaVote]++;
+                if (p.answerVote) {
+                    if (p.answerVote in sumVotes) {
+                        sumVotes[p.answerVote]++;
                     } else {
-                        histogram[p.personaVote] = 1;
+                        sumVotes[p.answerVote] = 1;
                     }
                 } else {
                     allVoted = false;
@@ -56,35 +56,48 @@ module.exports = function(socket) {
 
             if (allVoted) {
                 let winner = undefined;
-                let keys = Object.keys(histogram);
-                // Check winner persona
+                let keys = Object.keys(sumVotes);
+                // Check winner answer
                 for (k of keys) {
                     if (!winner) {
                         winner = k;
                     } else {
-                        if (histogram[k] > histogram[winner]) {
+                        if (sumVotes[k] > sumVotes[winner]) {
                             winner = k;
+                        } else if (sumVotes[k] === sumVotes[winner]) {
+                            if (retGame.players[k].answer['time'] <
+                                retGame.players[winner].answer['time'])
+                            {
+                                winner = k;
+                            }
                         }
                     }
                 }
 
-                console.log(`Persona defined for game ${game.id}: ${winner}`);
+                console.log(`Round winner for game ${game.id}: ${winner}`);
                 console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 let io = Server.getIO();
-                io.to(user.room).emit('persona', winner);
+                io.to(user.room).emit('round winner', winner);
 
-                Games.nextRound(retGame, undefined, (startedGame) => {
+                Games.nextRound(retGame, winner, (startedGame) => {
+                    if (startedGame.currentRound > startedGame.numRounds) {
+                        // Finish game
+                        if (!startedGame.match) {
+                            throw new Error(`Game ${startedGame.id} ended without winner`);
+                        }
+                        io.to(user.room).emit('game winner', JSON.stringify(game.match));
+                    }
                     console.debug(`Game round initialized for game ${startedGame.id}`);
                     console.debug(`game:\n` + JSON.stringify(startedGame, null, 2));
                 }, (err) => {
-                    console.err(`Failed to initialize new round for game ${startedGame.id}: ` + err);
+                    console.error(`Failed to initialize new round for game ${retGame.id}: ` + err);
                 });
             } else {
                 console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 console.log(`Game (${game.id}): Waiting for other players to vote`);
             }
         }, (err) => {
-            console.error(`User ${userID} failed to vote for persona: ` + err);
+            console.error(`User ${userID} failed to vote for answer: ` + err);
         });
     });
 };

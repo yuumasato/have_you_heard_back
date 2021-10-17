@@ -209,6 +209,9 @@
         var gamePersona = document.getElementById('gamePersona');
         var gameHeadline = document.getElementById('gameHeadline');
 
+        var gameState;
+        var currentRound = 0;
+
         function post(msg)
         {
             var item = document.createElement('li');
@@ -268,6 +271,31 @@
 
             gameForm.addEventListener('submit', personaButton);
             gameInstructions.textContent = 'Vote persona';
+        }
+
+        function voteAnswerButton(e) {
+            e.preventDefault();
+            socket.emit('vote answer', e.submitter.value);
+            post(`Voted on ${e.submitter.value}`);
+        }
+
+        function showAnswers(answers)
+        {
+            // Remove previous content
+            gameForm.innerHTML = '';
+
+            keys = Object.keys(answers);
+            for (let k of keys) {
+                var b = document.createElement("button");
+                b.setAttribute("type", "submit");
+                b.setAttribute("value", k);
+                b.setAttribute("class", "button_s");
+                b.textContent = answers[k];
+                gameForm.appendChild(b);
+            }
+
+            gameForm.addEventListener('submit', voteAnswerButton);
+            gameInstructions.textContent = 'Vote best answer';
         }
 
         function answerButton(e) {
@@ -397,6 +425,7 @@
                 gameID.textContent = game.id;
                 post('Game started');
                 showGame(game);
+                gameState = game;
             }
             else
             {
@@ -414,8 +443,45 @@
                 // Remove event listener
                 gameForm.removeEventListener('submit', personaButton);
 
-                showRound(game, 0);
+                showRound(gameState, currentRound);
             }
+            else
+            {
+                post('Invalid persona message');
+            }
+        });
+
+        socket.on('round answers', (answersJSON) =>
+        {
+            console.log(`answers: ` + answersJSON);
+            if (answersJSON)
+            {
+                answers = JSON.parse(answersJSON);
+
+                // Remove event listener
+                gameForm.removeEventListener('submit', answerButton);
+
+                showAnswers(answers);
+            }
+            else
+            {
+                post('Invalid persona message');
+            }
+        });
+
+        socket.on('round winner', (winner) =>
+        {
+            console.log(`round winner: ` + winner);
+            if (winner)
+            {
+                // Remove event listener
+                gameForm.removeEventListener('submit', voteAnswerButton);
+
+                currentRound++;
+
+                showRound(gameState, currentRound);
+            }
+
             else
             {
                 post('Invalid persona message');

@@ -91,6 +91,7 @@ module.exports = class Games {
 
                     // Set number of rounds and initial round
                     game.numRounds = 3;
+                    game.currentRound = 0;
 
                     // TODO: get headlines ramdomly
                     let allPromises = [];
@@ -127,12 +128,7 @@ module.exports = class Games {
                             multi.set(u.id, JSON.stringify(u), redis.print);
                         }
 
-                        // TODO decide if this is necessary
-                        room.game = gameID;
-
                         multi.set(gameID, JSON.stringify(game), redis.print);
-                        // TODO decide if this is necessary
-                        multi.set(room.id, JSON.stringify(room), redis.print);
                         multi.exec((multiErr, replies) => {
                             if (multiErr) {
                                 throw(multiErr);
@@ -379,9 +375,64 @@ module.exports = class Games {
     }
 
     /**
+     * Decide the game winner based on rounds won and time to answer
+     * */
+    static decideWinner(game) {
+        let match = undefined;
+        let roundsWon = {};
+
+        for (let w of game.roundWinners) {
+            if (w.id in roundsWon) {
+                roundsWon[w.id]['rounds']++;
+                roundsWon[w.id]['time'] += w.time;
+            } else {
+                roundsWon[w.id] = {};
+                roundsWon[w.id]['id'] = w.id;
+                roundsWon[w.id]['rounds'] = 1;
+                roundsWon[w.id]['time'] = w.time;
+            }
+        }
+
+        let sortableWinners = [];
+        for (let k in roundsWon) {
+            sortableWinners.push(roundsWon[k]);
+        }
+
+        // Sort in reverse order: more rounds/less time first
+        sortableWinners.sort((a, b) => {
+            if (a['rounds'] === b['rounds']) {
+                // This is reversed because less time is better
+                return a['time'] - b['time'];
+            } else {
+                return b['rounds'] - a['rounds'];
+            }
+        });
+
+        console.log(`sortableWinners = ` + JSON.stringify(sortableWinners));
+        let tie = false;
+        if (sortableWinners.length > 1) {
+            if (sortableWinners[0].rounds === sortableWinners[1].rounds) {
+                tie = true;
+            }
+        }
+
+        match = {};
+        match.stats = {};
+        for (let w of sortableWinners) {
+            match.stats[w.id] = w.rounds;
+        }
+        match.winner = sortableWinners[0].id;
+        match.tie = tie;
+
+        console.log(`match = ` + JSON.stringify(match, null, 2));
+
+        return match;
+    }
+
+    /**
      * Prepare new round
      * */
-    static async nextRound(game, cb, errCB) {
+    static async nextRound(game, roundWinner, cb, errCB) {
         // Create new object
         let redisIO = Redis.getIO();
 
@@ -393,19 +444,35 @@ module.exports = class Games {
                         throw(watchErr);
                     }
 
-                    if (!game.roundWinners) {
-                        game.roundWinners = [];
-                    } else {
+                    if (roundWinner) {
+                        if (!game.roundWinners) {
+                            game.roundWinners = [];
+                        }
+
+                        game.players.find((p) => {
+                            if (p.id == roundWinner) {
+                                game.roundWinners.push(
+                                    {
+                                        id: roundWinner,
+                                        time: p.answer.time
+                                    }
+                                );
+                            }
+                        });
+
                         if (game.roundWinners.length >= game.numRounds) {
-                            //TODO check who won the game and trigger end
+                            game.match = Games.decideWinner(game);
+                            console.log(`The game (${game.id}) winner was ${game.match.winner}`);
                         }
                     }
 
+                    game.currentRound++;
                     game.roundStart = Date.now();
 
                     // Remove answers from previous round
                     for (let p of game.players) {
                         p.answer = undefined;
+                        p.answerVote = undefined;
                     }
 
                     let multi = redisIO.multi();
@@ -513,6 +580,88 @@ module.exports = class Games {
                             } else {
                                 if (attempts > 0) {
                                     console.log('Answer transaction conflict, retrying...');
+                                    return transaction(--attempts);
+                                } else {
+                                    return undefined;
+                                }
+                            }
+                        });
+                    } else {
+                        throw new Error(`User ${user.id} not in game ${game.id}`);
+                    }
+                } catch(err) {
+                    if (errCB) {
+                        errCB(err);
+                    } else {
+                        console.error(err);
+                    }
+                }
+            });
+        }
+
+        // Retry up to 5 times
+        let resultPromise = new Promise((resolve, reject) => {
+            try {
+                transaction(5);
+                resolve('ok');
+            } catch(err) {
+                reject(err);
+            }
+        });
+
+        return resultPromise;
+    }
+
+    /**
+     * Register the vote for an answer
+     * */
+    static async voteAnswer(user, game, chosen, cb, errCB) {
+        let redisIO = Redis.getIO();
+        let toWatch = [user.id, game.id];
+
+        async function transaction(attempts) {
+            // Watch to prevent conflicts
+            redisIO.watch(toWatch, async (watchErr) => {
+                try {
+                    if (watchErr) {
+                        throw(watchErr);
+                    }
+
+                    let updated = false;
+                    game.players.find( (p) => {
+                        if (p.id == user.id) {
+                            if (p.answerVote) {
+                                throw new Error(`User ${user.id} already voted for answer`);
+                            }
+
+                            p.answerVote = chosen;
+                            updated = true;
+                        }
+                    });
+
+                    if (updated) {
+                        // Create transaction
+                        let multi = redisIO.multi();
+                        multi.set(game.id, JSON.stringify(game), redis.print);
+                        multi.exec((multiErr, replies) => {
+                            if (multiErr) {
+                                throw(multiErr);
+                            }
+
+                            if (replies) {
+                                replies.forEach(function(reply, index) {
+                                    console.log('Vote answer transaction: ' + reply.toString());
+                                });
+
+                                // In case of success, call the callback, if provided
+                                if (cb) {
+                                    cb(game);
+                                }
+
+                                return game;
+                            } else {
+                                if (attempts > 0) {
+                                    console.log('Vote answer transaction conflict, retrying...');
                                     return transaction(--attempts);
                                 } else {
                                     return undefined;
