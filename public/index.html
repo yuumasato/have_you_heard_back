@@ -162,6 +162,7 @@
         </ul>
         <h5 id="gamePersona"></h5>
         <h5 id="gameInstructions"></h5>
+        <p id="gameHeadline"></p>
         <form class="form_game" id="gameForm" action="">
         </form>
     </div>
@@ -206,6 +207,7 @@
         var gameInstructions = document.getElementById('gameInstructions');
         var gamePlayers = document.getElementById('gamePlayers');
         var gamePersona = document.getElementById('gamePersona');
+        var gameHeadline = document.getElementById('gameHeadline');
 
         function post(msg)
         {
@@ -244,6 +246,12 @@
             showPersonas();
         };
 
+        function personaButton(e) {
+            e.preventDefault();
+            socket.emit('vote persona', e.submitter.value);
+            post(`Voted on ${e.submitter.value}`);
+        }
+
         function showPersonas()
         {
             let personas = ['Tia do Zap', 'Antivacina', 'Vegana', 'Salvio',
@@ -258,12 +266,40 @@
                 gameForm.appendChild(b);
             }
 
-            gameForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                socket.emit('vote persona', e.submitter.value);
-                post(`Voted on ${e.submitter.value}`);
-            });
+            gameForm.addEventListener('submit', personaButton);
             gameInstructions.textContent = 'Vote persona';
+        }
+
+        function answerButton(e) {
+            var i = document.getElementById('answerInput');
+            e.preventDefault();
+            if (i.value)
+            {
+                socket.emit('answer', i.value);
+                post(`Sent answer: ${i.value}`);
+            }
+            i.value = '';
+        }
+
+        function showRound(game, round)
+        {
+            // Remove previous content
+            gameForm.innerHTML = '';
+
+            var i = document.createElement("input");
+            i.setAttribute("id", "answerInput");
+            gameForm.appendChild(i);
+
+            var b = document.createElement("button");
+            b.setAttribute("type", "submit");
+            b.setAttribute("value", "Submit");
+            b.setAttribute("class", "button_s");
+            b.textContent = 'Send answer';
+            gameForm.appendChild(b);
+
+            gameForm.addEventListener('submit', answerButton);
+            gameInstructions.textContent = '';
+            gameHeadline.textContent = game.headlines[round];
         }
 
         newRoomForm.addEventListener('submit', function(e)
@@ -374,6 +410,11 @@
             if (persona)
             {
                 gamePersona.textContent = `Complete como: ${persona}`;
+
+                // Remove event listener
+                gameForm.removeEventListener('submit', personaButton);
+
+                showRound(game, 0);
             }
             else
             {
