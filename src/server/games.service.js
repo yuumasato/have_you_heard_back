@@ -223,12 +223,20 @@ module.exports = class Games {
                     let multi = redisIO.multi();
                     multi.set(userID, JSON.stringify(user), redis.print);
 
-                    // If the player was in the game, remove
+                    // If the player was in the game, remove from the game
                     if (found) {
                         game.players = game.players.filter((p) => {
                             return p.id !== userID;
                         });
+
                         multi.set(gameID, JSON.stringify(game), redis.print);
+
+                        // If the list of players become empty, set expiration
+                        // time
+                        if (game.players.length <= 0) {
+                            multi.expire(gameID, 300, redis.print);
+                            console.log(`Game ${gameID} is empty and will be deleted`);
+                        }
                     } else {
                         // User was not in the game anymore, set as undefined
                         // for the callback call
@@ -254,10 +262,10 @@ module.exports = class Games {
                             return game;
                         } else {
                             if (attempts > 0) {
-                                console.log('Game create transaction conflict, retrying...');
+                                console.log('Game remove player transaction conflict, retrying...');
                                 return transaction(--attempts);
                             } else {
-                                throw new Error('Maximum number of attempts tried for game create transaction');
+                                throw new Error('Maximum number of attempts tried for game remove player transaction');
                             }
                         }
                     });
