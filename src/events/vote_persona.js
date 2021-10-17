@@ -72,6 +72,13 @@ module.exports = function(socket) {
                 console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 let io = Server.getIO();
                 io.to(user.room).emit('persona', winner);
+
+                Games.nextRound(retGame, (startedGame) => {
+                    console.debug(`Game round initialized for game ${startedGame.id}`);
+                    console.debug(`game:\n` + JSON.stringify(startedGame, null, 2));
+                }, (err) => {
+                    console.err(`Failed to initialize new round for game ${startedGame.id}: ` + err);
+                });
             } else {
                 console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 console.log(`Game (${game.id}): Waiting for other players to vote`);

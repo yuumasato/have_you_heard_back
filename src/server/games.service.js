@@ -89,6 +89,9 @@ module.exports = class Games {
 
                     let game = new Game(gameID);
 
+                    // Set number of rounds and initial round
+                    game.numRounds = 3;
+
                     // TODO: get headlines ramdomly
                     let allPromises = [];
                     for (let player of room.users) {
@@ -320,7 +323,91 @@ module.exports = class Games {
                         }
                     });
 
-                    // Create transaction
+                    if (updated) {
+                        // Create transaction
+                        let multi = redisIO.multi();
+                        multi.set(game.id, JSON.stringify(game), redis.print);
+                        multi.exec((multiErr, replies) => {
+                            if (multiErr) {
+                                throw(multiErr);
+                            }
+
+                            if (replies) {
+                                replies.forEach(function(reply, index) {
+                                    console.log('Vote persona transaction: ' + reply.toString());
+                                });
+
+                                // In case of success, call the callback, if provided
+                                if (cb) {
+                                    cb(game);
+                                }
+
+                                return game;
+                            } else {
+                                if (attempts > 0) {
+                                    console.log('Vote persona transaction conflict, retrying...');
+                                    return transaction(--attempts);
+                                } else {
+                                    return undefined;
+                                }
+                            }
+                        });
+                    } else {
+                        throw new Error(`User ${user.id} not in game ${game.id}`);
+                    }
+                } catch(err) {
+                    if (errCB) {
+                        errCB(err);
+                    } else {
+                        console.error(err);
+                    }
+                }
+            });
+        }
+
+        // Retry up to 5 times
+        let resultPromise = new Promise((resolve, reject) => {
+            try {
+                transaction(5);
+                resolve('ok');
+            } catch(err) {
+                reject(err);
+            }
+        });
+
+        return resultPromise;
+    }
+
+    /**
+     * Prepare new round
+     * */
+    static async nextRound(game, cb, errCB) {
+        // Create new object
+        let redisIO = Redis.getIO();
+
+        async function transaction(attempts) {
+            // Watch to prevent conflicts
+            redisIO.watch(game.id, async (watchErr) => {
+                try {
+                    if (watchErr) {
+                        throw(watchErr);
+                    }
+
+                    if (!game.roundWinners) {
+                        game.roundWinners = [];
+                    } else {
+                        if (game.roundWinners.length >= game.numRounds) {
+                            //TODO check who won the game and trigger end
+                        }
+                    }
+
+                    game.roundStart = Date.now();
+
+                    // Remove answers from previous round
+                    for (let p of game.players) {
+                        p.answer = undefined;
+                    }
+
                     let multi = redisIO.multi();
                     multi.set(game.id, JSON.stringify(game), redis.print);
                     multi.exec((multiErr, replies) => {
@@ -330,7 +417,7 @@ module.exports = class Games {
 
                         if (replies) {
                             replies.forEach(function(reply, index) {
-                                console.log('Vote persona transaction: ' + reply.toString());
+                                console.log('New round transaction: ' + reply.toString());
                             });
 
                             // In case of success, call the callback, if provided
@@ -341,7 +428,7 @@ module.exports = class Games {
                             return game;
                         } else {
                             if (attempts > 0) {
-                                console.log('Vote persona transaction conflict, retrying...');
+                                console.log('New round conflict, retrying...');
                                 return transaction(--attempts);
                             } else {
                                 return undefined;
@@ -371,4 +458,90 @@ module.exports = class Games {
         return resultPromise;
     }
 
+    /**
+     * Register the vote for an answer
+     * */
+    static async answer(user, game, answer, cb, errCB) {
+        // Create new object
+        let redisIO = Redis.getIO();
+        let toWatch = [user.id, game.id];
+
+        async function transaction(attempts) {
+            // Watch to prevent conflicts
+            redisIO.watch(toWatch, async (watchErr) => {
+                try {
+                    if (watchErr) {
+                        throw(watchErr);
+                    }
+
+                    let updated = false;
+                    game.players.find((p) => {
+                        if (p.id == user.id) {
+                            if (p.answer) {
+                                throw new Error(`User ${user.id} already answered`);
+                            }
+
+                            let now = Date.now();
+                            p.answer = {
+                                time: now - game.roundStart,
+                                answer: answer
+                            }
+                            updated = true;
+                        }
+                    });
+
+                    if (updated) {
+                        // Create transaction
+                        let multi = redisIO.multi();
+                        multi.set(game.id, JSON.stringify(game), redis.print);
+                        multi.exec((multiErr, replies) => {
+                            if (multiErr) {
+                                throw(multiErr);
+                            }
+
+                            if (replies) {
+                                replies.forEach(function(reply, index) {
+                                    console.log('Answer transaction: ' + reply.toString());
+                                });
+
+                                // In case of success, call the callback, if provided
+                                if (cb) {
+                                    cb(game);
+                                }
+
+                                return game;
+                            } else {
+                                if (attempts > 0) {
+                                    console.log('Answer transaction conflict, retrying...');
+                                    return transaction(--attempts);
+                                } else {
+                                    return undefined;
+                                }
+                            }
+                        });
+                    } else {
+                        throw new Error(`User ${user.id} not in game ${game.id}`);
+                    }
+                } catch(err) {
+                    if (errCB) {
+                        errCB(err);
+                    } else {
+                        console.error(err);
+                    }
+                }
+            });
+        }
+
+        // Retry up to 5 times
+        let resultPromise = new Promise((resolve, reject) => {
+            try {
+                transaction(5);
+                resolve('ok');
+            } catch(err) {
+                reject(err);
+            }
+        });
+
+        return resultPromise;
+    }
 }

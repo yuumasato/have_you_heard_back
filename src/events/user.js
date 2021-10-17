@@ -21,6 +21,7 @@ module.exports = function(socket) {
                 require('./name')(socket);
                 require('./start')(socket);
                 require('./vote_persona')(socket);
+                require('./answer')(socket);
             } else {
                 console.error('Could not create user');
             }
