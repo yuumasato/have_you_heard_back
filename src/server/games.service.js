@@ -693,4 +693,83 @@ module.exports = class Games {
 
         return resultPromise;
     }
+
+    static async endGame(game, cb, errCB) {
+        let redisIO = Redis.getIO();
+        let toWatch = [game.id];
+        for (let p of game.players) {
+            toWatch.push(p.id);
+        }
+
+        async function transaction(attempts) {
+            // Watch to prevent conflicts
+            redisIO.watch(toWatch, async (watchErr) => {
+                try {
+                    if (watchErr) {
+                        throw(watchErr);
+                    }
+
+                    // Create transaction
+                    let multi = redisIO.multi();
+
+                    let allPromises = [];
+                    for (let player of game.players) {
+                        allPromises.push(Users.get(player.id));
+                    }
+
+                    Promise.all(allPromises).then(async (values) => {
+                        for (let user of values) {
+                            delete(user.game);
+                            multi.set(user.id, JSON.stringify(user), redis.print);
+                        }
+
+                        multi.del(game.id, redis.print);
+                        multi.exec((multiErr, replies) => {
+                            if (multiErr) {
+                                throw(multiErr);
+                            }
+
+                            if (replies) {
+                                replies.forEach(function(reply, index) {
+                                    console.log('End game transaction: ' + reply.toString());
+                                });
+
+                                // In case of success, call the callback, if provided
+                                if (cb) {
+                                    cb(game);
+                                }
+
+                                return game;
+                            } else {
+                                if (attempts > 0) {
+                                    console.log('End game transaction conflict, retrying...');
+                                    return transaction(--attempts);
+                                } else {
+                                    return undefined;
+                                }
+                            }
+                        });
+                    });
+                } catch(err) {
+                    if (errCB) {
+                        errCB(err);
+                    } else {
+                        console.error(err);
+                    }
+                }
+            });
+        }
+
+        // Retry up to 5 times
+        let resultPromise = new Promise((resolve, reject) => {
+            try {
+                transaction(5);
+                resolve('ok');
+            } catch(err) {
+                reject(err);
+            }
+        });
+
+        return resultPromise;
+    }
 }

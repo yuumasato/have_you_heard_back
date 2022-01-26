@@ -105,9 +105,15 @@ module.exports = function(socket) {
                             throw new Error(`Game ${startedGame.id} ended without winner`);
                         }
                         io.to(user.room).emit('game winner', JSON.stringify(game.match));
+                        Games.endGame(startedGame, (game) => {
+                            console.log(`Game ${game.id} ended`);
+                        }, (err) => {
+                            console.log(`Failed to end game ${game.id}: ` + err);
+                        });
+                    } else {
+                        console.debug(`Game round initialized for game ${startedGame.id}`);
+                        console.debug(`game:\n` + JSON.stringify(startedGame, null, 2));
                     }
-                    console.debug(`Game round initialized for game ${startedGame.id}`);
-                    console.debug(`game:\n` + JSON.stringify(startedGame, null, 2));
                 }, (err) => {
                     console.error(`Failed to initialize new round for game ${retGame.id}: ` + err);
                 });
