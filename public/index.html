@@ -8,62 +8,35 @@
         body {
             width: 100%;
             margin: 0;
-            padding-bottom: 3rem;
+            overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        .main-section{
-          width: 60vw;
-          min-width: 320px;
-          min-height: 90vh;
-          margin: 0 auto;
+        .main-section {
+            height: 100vh;
+            width: 60vw;
+            min-width: 320px;
+            min-height: 90vh;
+            margin: 0 auto;
         }
 
-        .form_s {
-            background: rgba(0, 0, 0, 0.15);
-            padding: 0.25rem;
-            position: static;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            display: flex;
-            height: 3rem;
-            box-sizing: border-box;
-            backdrop-filter: blur(10px);
+        .half{
+            width: 50%;
+            border-style: solid;
+            border-width: 1px;
         }
 
-        .form_button {
+        form {
             background: rgba(0, 0, 0, 0.15);
             padding: 0.25rem;
             position: static;
             display: flex;
             height: 3rem;
             box-sizing: border-box;
-            backdrop-filter: blur(10px);
+            min-width: 320px;
         }
 
-        .form_chat {
-            background: rgba(0, 0, 0, 0.15);
-            padding: 0.25rem;
-            position: fixed;
-            bottom: 0;
-            display: flex;
-            height: 3rem;
-            box-sizing: border-box;
-            backdrop-filter: blur(10px);
-        }
-
-        .form_game {
-            background: rgba(0, 0, 0, 0.15);
-            padding: 0.25rem;
-            position: static;
-            display: flex;
-            height: 3rem;
-            box-sizing: border-box;
-            backdrop-filter: blur(10px);
-        }
-
-        .input {
+        input {
             border: none;
             padding: 0 1rem;
             flex-grow: 1;
@@ -71,11 +44,7 @@
             margin: 0.25rem;
         }
 
-        #input:focus {
-            outline: none;
-        }
-
-        .button_s {
+        button {
             background: #333;
             border: none;
             padding: 0 1rem;
@@ -85,132 +54,119 @@
             color: #fff;
         }
 
-        #messages {
+        ul {
+            padding: 0;
+            list-style-type: none;
+        }
+
+        li {
+            list-style-type: none;
+            margin: 3px;
+            padding: 0.5rem 1rem;
+        }
+
+        li:nth-child(odd) {
+            background: #efefef;
+        }
+
+        .rooms {
+            padding: 0.5rem 1rem;
+            display: flex;
+            border: 1px;
+        }
+
+        .messages {
+            width: 100%;
+            bottom: 3rem;
+            height: 20vh;
+            padding: 0;
+            box-sizing: border-box;
+            overflow: auto;
             list-style-type: none;
             margin: 0;
             padding: 0;
         }
 
-        #messages>li {
-            padding: 0.5rem 1rem;
-        }
-
-        #messages>li:nth-child(odd) {
-            background: #efefef;
-        }
-
-        #room{
-          padding: 0.5rem 1rem;
-        }
-
-        .menu {
-            width: 100%;
-        }
-
-        .chat {
-            width: 100%;
-            bottom: 3rem;
-            padding: 0;
-            box-sizing: border-box;
+        .remaining {
+            width: 60vw;
             overflow: auto;
         }
 
-        .chat_form {
+        .chat {
             padding: 0;
-            height: 10vh;
             box-sizing: border-box;
+            bottom: 0;
+            position: absolute;
         }
 
-        .chat_form form{
-          width: 60vw;
-          min-width: 320px;
+        .fixed {
+            bottom: 0;
+            width: 60vw;
         }
 
-        .cleanList {
-            list-style-type: none;
-            margin: 3px;
-            padding: 0;
-        }
     </style>
 </head>
 
 <body>
-  <section class="main-section">
-    <div class="menu">
-        <form class="form_button" id="newRoomForm" action="">
-            <button class="button_s">New Room</button>
-        </form>
-        <form class="form_button" id="leaveForm" action="">
-            <button class="button_s">Leave Room</button>
-        </form>
-        <form class="form_button" id="startForm" action="">
-            <button class="button_s">Start game</button>
-        </form>
-        <form class="form_s" id="joinForm" action="">
-            <input class="input" id="joinInput" autocomplete="off" />
-            <button class="button_s">Join room</button>
-        </form>
-        <form class="form_s" id="nameForm" action="">
-            <input class="input" id="nameInput" autocomplete="off" />
-            <button class="button_s">Set name</button>
-        </form>
-        <h4 id="room">Lobby</h4>
-        <ul class="cleanList" id="roomPlayers">
-        </ul>
-        <h4 id="gameID"></h4>
-        <ul class="cleanList" id="gamePlayers">
-        </ul>
-        <h5 id="gamePersona"></h5>
-        <h5 id="gameInstructions"></h5>
-        <p id="gameHeadline"></p>
-        <form class="form_game" id="gameForm" action="">
-        </form>
-    </div>
-
-    <div class="chat" id="chat">
-        <ul id="messages">
-        </ul>
-    </div>
-
-    <div class="chat_form">
-        <form class="form_chat" id="messageForm" action="">
-            <input class="input" id="messageInput" autocomplete="off" />
-            <button class="button_s">Send message</button>
-        </form>
-    </div>
-  </section>
+    <section class="main-section">
+        <div class="rooms">
+            <div class="half">
+                <h4 id="room" align="center">Room: Lobby</h4>
+                <ul id="roomPlayers" align="center" width="80%"></ul>
+            </div>
+            <div class="half">
+                <h4 id="gameID" align="center">Game: not in a game</h4>
+                <ul id="gamePlayers" align="center" width="80%"></ul>
+            </div>
+        </div>
+        <div>
+            <h1 align="center">Have you heard?</h1>
+            <h5 id="gamePersona"></h5>
+            <h5 id="gameInstructions"></h5>
+            <p id="gameHeadline"></p>
+            <form class="form" id="gameForm" action=""></form>
+        </div>
+        <div class="remaining">
+            <div class="chat">
+                <div class="messages" id="chat">
+                    <ul id="messages">
+                    </ul>
+                </div>
+                <form class="fixed" id="messageForm" action="">
+                    <input id="messageInput" autocomplete="off" />
+                    <button>Send</button>
+                    <button>Clear</button>
+                </form>
+            </div>
+        </div>
+    </section>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         var socket = io();
 
-        var newRoomForm = document.getElementById('newRoomForm');
-        var leaveForm = document.getElementById('leaveForm');
-        var startForm = document.getElementById('startForm');
-
-        var messageForm = document.getElementById('messageForm');
         var messageInput = document.getElementById('messageInput');
-
-        var joinForm = document.getElementById('joinForm');
-        var joinInput = document.getElementById('joinInput');
-
-        var nameForm = document.getElementById('nameForm');
-        var nameInput = document.getElementById('nameInput');
+        var messageForm = document.getElementById('messageForm');
 
         var currentRoom = document.getElementById('room');
-
         var roomPlayers = document.getElementById('roomPlayers');
-        var rooms = document.getElementById('rooms');
+        var gamePlayers = document.getElementById('gamePlayers');
+        var gameID = document.getElementById('gameID');
 
         var gameForm = document.getElementById('gameForm');
-        var gameID = document.getElementById('gameID');
         var gameInstructions = document.getElementById('gameInstructions');
-        var gamePlayers = document.getElementById('gamePlayers');
         var gamePersona = document.getElementById('gamePersona');
         var gameHeadline = document.getElementById('gameHeadline');
 
-        var gameState;
+        var gameState = undefined;
+        var roomState = undefined;
+        var gameWinner = undefined;
         var currentRound = 0;
+        var numRounds = 3;
+        var myName = "user";
+
+
+        showName();
 
         function post(msg)
         {
@@ -218,7 +174,7 @@
             item.textContent = msg;
             messages.appendChild(item);
 
-            var div = document.getElementById('chat');
+            var div = document.getElementById('messages');
             div.scrollTop = div.scrollHeight - div.clientHeight;
         };
 
@@ -244,23 +200,163 @@
                 newPlayers.appendChild(item);
             }
             gamePlayers.innerHTML = newPlayers.innerHTML;
-
-            // TODO show stage
-            showPersonas();
         };
 
-        function personaButton(e) {
+        function nameButton(e)
+        {
+            e.preventDefault();
+            var nameInput = document.getElementById("nameInput");
+            var newName = nameInput.value.trim();
+            if (newName)
+            {
+                myName = newName;
+                post(`Set name to ${newName}`);
+                gameForm.removeEventListener('submit', nameButton);
+                socket.emit('name', newName);
+                showChooseRoom();
+            }
+            nameInput.value = "";
+        }
+
+        function showName()
+        {
+            // Remove previous content
+            gameForm.innerHTML = "";
+
+            var i = document.createElement("input");
+            i.setAttribute("id", "nameInput");
+            gameForm.appendChild(i);
+
+            var b = document.createElement("button");
+            b.setAttribute("type", "submit");
+            b.textContent = "Set name";
+            gameForm.appendChild(b);
+
+            gameForm.addEventListener('submit', nameButton);
+        }
+
+        function roomButton(e)
+        {
+            e.preventDefault();
+
+            if (e.submitter.value === "Join")
+            {
+                var i = document.getElementById('joinInput');
+                var roomID = i.value.trim();
+                if (roomID)
+                {
+                    socket.emit('join', roomID);
+                    post(`Trying to join room ${roomID}`);
+                }
+                joinInput.value = "";
+            }
+            else if (e.submitter.value === "New room")
+            {
+                socket.emit("new room");
+                post("Requested new room");
+            }
+        }
+
+        function showChooseRoom()
+        {
+            // Remove previous content
+            gameForm.innerHTML = "";
+
+            var i = document.createElement("input");
+            i.setAttribute("id", "joinInput");
+            gameForm.appendChild(i);
+
+            var b = document.createElement("button");
+            b.setAttribute("type", "submit");
+            b.value = "Join";
+            b.textContent = "Join room";
+            gameForm.appendChild(b);
+
+            b = document.createElement("button");
+            b.setAttribute("type", "submit");
+            b.value = "New room";
+            b.textContent = "New room";
+            gameForm.appendChild(b);
+
+            gameForm.addEventListener('submit', roomButton);
+        }
+
+        function startButton(e)
+        {
+            e.preventDefault();
+
+            if (e.submitter.value === "Leave")
+            {
+                currentRoom.textContent = "";
+                roomPlayers.innerHTML = "";
+                post(`Left room ${roomState.id.substring(5)}`);
+                socket.emit("leave", roomState.id);
+                currentRoom.textContent = "Lobby";
+                roomState = undefined;
+                roomPlayers.innerHTML = "";
+                showChooseRoom();
+                gameForm.removeEventListener('submit', startButton);
+            }
+            else if (e.submitter.value === "Start")
+            {
+                socket.emit("start");
+                post("Started game");
+            } else {
+                post("Error on startButton");
+                console.log("Error on startButton");
+            }
+        }
+
+        function showStart() {
+            // Remove previous content
+            gameForm.innerHTML = "";
+
+            var b = document.createElement("button");
+            b.setAttribute("type", "submit");
+            b.value = "Leave";
+            b.textContent = "Leave room";
+            gameForm.appendChild(b);
+
+            b = document.createElement("button");
+            b.setAttribute("type", "submit");
+            b.value = "Start";
+            b.textContent = "Start Game";
+            gameForm.appendChild(b);
+
+            gameForm.addEventListener('submit', startButton);
+        }
+
+        function messageButton(e)
+        {
+            e.preventDefault();
+            if (messageInput.value)
+            {
+                socket.emit('chat message', messageInput.value);
+            }
+            messageInput.value = "";
+        }
+
+        function personaButton(e)
+        {
             e.preventDefault();
             socket.emit('vote persona', e.submitter.value);
             post(`Voted on ${e.submitter.value}`);
+            gameForm.innerHTML = "";
+            gameInstructions.textContent =
+                        "Aguarde os outros jogadores votarem";
         }
 
         function showPersonas()
         {
-            let personas = ['Tia do Zap', 'Antivacina', 'Vegana', 'Salvio',
-                        'Eron Must', 'Tump', 'Lulo', 'Bonosaro'];
+            // Remove previous content
+            gameForm.innerHTML = "";
 
-            for (let p of personas) {
+            let personas = ['Tia do Zap', 'Antivacina', 'Vegana', 'Salvio',
+                'Eron Must', 'Tump', 'Lulo', 'Bonosaro'
+            ];
+
+            for (let p of personas)
+            {
                 var b = document.createElement("button");
                 b.setAttribute("type", "submit");
                 b.setAttribute("value", p);
@@ -273,19 +369,24 @@
             gameInstructions.textContent = 'Vote persona';
         }
 
-        function voteAnswerButton(e) {
+        function voteAnswerButton(e)
+        {
             e.preventDefault();
             socket.emit('vote answer', e.submitter.value);
             post(`Voted on ${e.submitter.value}`);
+            gameForm.innerHTML = "";
+            gameInstructions.textContent =
+                        "Aguarde os outros jogadores votarem";
         }
 
         function showAnswers(answers)
         {
             // Remove previous content
-            gameForm.innerHTML = '';
+            gameForm.innerHTML = "";
 
             keys = Object.keys(answers);
-            for (let k of keys) {
+            for (let k of keys)
+            {
                 var b = document.createElement("button");
                 b.setAttribute("type", "submit");
                 b.setAttribute("value", k);
@@ -298,21 +399,25 @@
             gameInstructions.textContent = 'Vote best answer';
         }
 
-        function answerButton(e) {
+        function answerButton(e)
+        {
             var i = document.getElementById('answerInput');
             e.preventDefault();
             if (i.value)
             {
                 socket.emit('answer', i.value);
                 post(`Sent answer: ${i.value}`);
+                gameForm.innerHTML = "";
+                gameInstructions.textContent =
+                    "Aguarde os outros jogadores responderem";
             }
-            i.value = '';
+            i.value = "";
         }
 
         function showRound(game, round)
         {
             // Remove previous content
-            gameForm.innerHTML = '';
+            gameForm.innerHTML = "";
 
             var i = document.createElement("input");
             i.setAttribute("id", "answerInput");
@@ -326,28 +431,120 @@
             gameForm.appendChild(b);
 
             gameForm.addEventListener('submit', answerButton);
-            gameInstructions.textContent = '';
+            gameInstructions.textContent = "";
             gameHeadline.textContent = game.headlines[round];
         }
 
-        newRoomForm.addEventListener('submit', function(e)
+        function continueButton(e)
         {
             e.preventDefault();
-            socket.emit('new room');
-        });
 
-        leaveForm.addEventListener('submit', function(e)
-        {
-            e.preventDefault();
-            socket.emit('leave');
-            currentRoom.textContent = 'Lobby';
-        });
+            gameForm.removeEventListener("submit", continueButton);
+            if (currentRound < numRounds) {
+                showRound(gameState, currentRound);
+            } else {
+                showGameWinner(gameWinner);
+            }
+        }
 
-        startForm.addEventListener('submit', function(e)
+        function showRoundWinner(winner)
+        {
+            // Remove previous content
+            gameForm.innerHTML = "";
+            gameHeadline.textContent = "";
+
+            var winnerName;
+            gameState.players.find((p) => {
+                if (p.id === winner) {
+                    winnerName = p.name;
+                }
+            });
+
+            gameInstructions.textContent = `Vencedor da rodada: ${winnerName}`;
+
+            var b = document.createElement("button");
+            b.setAttribute("type", "submit");
+            b.setAttribute("value", "Submit");
+            b.setAttribute("class", "button_s");
+            b.textContent = 'Continue';
+            gameForm.appendChild(b);
+
+            gameForm.addEventListener('submit', continueButton);
+        }
+
+        function endButton(e)
         {
             e.preventDefault();
-            socket.emit('start');
-        });
+            gameForm.removeEventListener('submit', endButton);
+
+            currentRound = 0;
+            gameState = undefined;
+            gameForm.innerHTML = "";
+            gameHeadline.textContent = "";
+            gameInstructions.textContent = "";
+            persona = "";
+            gamePlayers.innerHTML = "";
+            gameID.textContent = "Game: not in a game";
+            gamePersona.textContent = "";
+
+            gameForm.removeEventListener('submit', endButton);
+
+            if (e.submitter.value === 'Leave')
+            {
+                socket.emit('leave');
+                post(`Left room ${roomState.id.substring(5)}`);
+                roomPlayers.innerHTML = "";
+                currentRoom.textContent = "Room: Lobby";
+                roomState = undefined;
+                showChooseRoom();
+            } else {
+                showStart();
+            }
+        }
+
+        function showGameWinner(winnerJSON)
+        {
+            // Remove previous content
+            gameForm.innerHTML = "";
+
+            gameHeadline.textContent = "";
+
+            var winnerName;
+
+            console.log(`Show game winner: ` + winnerJSON);
+            winner = JSON.parse(winnerJSON);
+
+            for (let w of Object.entries(winner["stats"])) {
+                var pName;
+                gameState.players.find((p) => {
+                    if (p.id === w[0]) {
+                        pName = p.name;
+                    }
+                    if (p.id === winner["winner"]) {
+                        winnerName = p.name;
+                    }
+                });
+                post(`${pName} ganhou ${w[1]} rounds`);
+            }
+
+            gameInstructions.textContent = "Vencedor: " + winnerName;
+
+            var l = document.createElement("button");
+            l.setAttribute("type", "submit");
+            l.setAttribute("value", "Leave");
+            l.setAttribute("class", "button_s");
+            l.textContent = 'Leave game';
+            gameForm.appendChild(l);
+
+            var r = document.createElement("button");
+            r.setAttribute("type", "submit");
+            r.setAttribute("value", "Rematch");
+            r.setAttribute("class", "button_s");
+            r.textContent = 'Rematch';
+            gameForm.appendChild(r);
+
+            gameForm.addEventListener('submit', endButton);
+        }
 
         messageForm.addEventListener('submit', function(e)
         {
@@ -356,30 +553,7 @@
             {
                 socket.emit('chat message', messageInput.value);
             }
-            messageInput.value = '';
-        });
-
-
-        joinForm.addEventListener('submit', function(e)
-        {
-            e.preventDefault();
-            var roomID = joinInput.value.trim();
-            if (roomID)
-            {
-                socket.emit('join', roomID);
-            }
-            joinInput.value = '';
-        });
-
-        nameForm.addEventListener('submit', function(e)
-        {
-            e.preventDefault();
-            var newName = nameInput.value.trim();
-            if (newName)
-            {
-                socket.emit('name', newName);
-            }
-            nameInput.value = '';
+            messageInput.value = "";
         });
 
         // Event handlers
@@ -405,9 +579,15 @@
             console.log(`room: ${roomJSON}`);
             if (roomJSON)
             {
-                room = JSON.parse(roomJSON);
-                currentRoom.textContent = room.id;
-                post('Joined room ' + room.id);
+                var room = JSON.parse(roomJSON);
+
+                if (!roomState) {
+                    currentRoom.textContent = "Room: " + room.id.substring(5);
+                    roomState = room;
+                    post("Joined room " + room.id.substring(5));
+                    gameForm.removeEventListener('submit', roomButton);
+                    showStart();
+                }
                 showRoom(room);
             }
             else
@@ -418,14 +598,20 @@
 
         socket.on('game', (gameJSON) =>
         {
-            console.log(`room: ${gameJSON}`);
+            console.log(`game: ${gameJSON}`);
             if (gameJSON)
             {
                 game = JSON.parse(gameJSON);
-                gameID.textContent = game.id;
-                post('Game started');
-                showGame(game);
+
+                if (!gameState) {
+                    gameID.textContent = game.id;
+                    post('Game started');
+                    showPersonas();
+                    gameForm.removeEventListener('submit', startButton);
+                }
+
                 gameState = game;
+                showGame(game);
             }
             else
             {
@@ -465,7 +651,7 @@
             }
             else
             {
-                post('Invalid persona message');
+                post('Invalid round answers message');
             }
         });
 
@@ -475,18 +661,35 @@
             if (winner)
             {
                 // Remove event listener
-                gameForm.removeEventListener('submit', voteAnswerButton);
+                gameForm.removeEventListener('submit',
+                    voteAnswerButton);
 
                 currentRound++;
 
-                showRound(gameState, currentRound);
+                showRoundWinner(winner);
+            }
+            else
+            {
+                post('Invalid round winner message');
+            }
+        });
+
+        socket.on('game winner', (winner) =>
+        {
+            console.log(`game winner: ` + winner);
+            if (winner)
+            {
+                // Remove event listener
+
+                gameWinner = winner;
             }
 
             else
             {
-                post('Invalid persona message');
+                post('Invalid game winner message');
             }
         });
+
     </script>
 </body>
 
