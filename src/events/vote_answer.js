@@ -57,6 +57,8 @@ module.exports = function(socket) {
             if (allVoted) {
                 let winner = undefined;
                 let keys = Object.keys(sumVotes);
+
+                console.debug(`All voted, find winner`);
                 // Check winner answer
                 for (k of keys) {
                     if (!winner) {
@@ -65,9 +67,25 @@ module.exports = function(socket) {
                         if (sumVotes[k] > sumVotes[winner]) {
                             winner = k;
                         } else if (sumVotes[k] === sumVotes[winner]) {
-                            if (retGame.players[k].answer['time'] <
-                                retGame.players[winner].answer['time'])
+
+                            let winner_time = undefined;
+                            let player_time = undefined;
+                            // Break the tie according to time
+                            for (let p of retGame.players) {
+                                if (p.id == k) {
+                                    player_time = p.answer['time'];
+                                }
+                                if (p.id == winner) {
+                                    winner_time = p.answer['time'];
+                                }
+                            }
+
+                            if (winner_time == undefined ||
+                                player_time == undefined)
                             {
+                                console.log(`DEBUG THIS: Times not registered`);
+                            }
+                            else if (player_time < winner_time) {
                                 winner = k;
                             }
                         }
@@ -75,6 +93,7 @@ module.exports = function(socket) {
                 }
 
                 console.log(`Round winner for game ${game.id}: ${winner}`);
+                console.debug(`Round ${game.round} of ${game.numRounds}`);
                 console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 let io = Server.getIO();
                 io.to(user.room).emit('round winner', winner);
