@@ -19,6 +19,7 @@ module.exports = function(socket) {
                 require('./leave')(socket);
                 require('./new_room')(socket);
                 require('./name')(socket);
+                require('./language')(socket);
                 require('./start')(socket);
                 require('./vote_persona')(socket);
                 require('./answer')(socket);

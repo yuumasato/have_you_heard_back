@@ -5,6 +5,8 @@ const User = require('./user.class');
 const Room = require('./room.class');
 const Redis = require('./redis.service');
 
+const consts = require('./consts');
+
 // The class is given when something requires this module
 module.exports = class Users {
 
@@ -161,6 +163,86 @@ module.exports = class Users {
                         } else {
                             if (attempts > 0) {
                                 console.log('User set name transaction conflict, retrying...');
+                                return transaction(--attempts);
+                            } else {
+                                return undefined;
+                            }
+                        }
+                    });
+                } catch(err) {
+                    if (errCB) {
+                        errCB(err);
+                    } else {
+                        console.error(err);
+                    }
+                }
+            });
+        }
+
+        // Retry up to 5 times
+        let resultPromise = new Promise((resolve, reject) => {
+            try {
+                transaction(5);
+                resolve('ok');
+            } catch(err) {
+                reject(err);
+            }
+        });
+
+        return resultPromise;
+    }
+
+    /**
+     * Set the user language. If a callback is provided, call it passing the
+     * modified user object, if the transaction was successful
+     * */
+    static async setLanguage(userID, language, cb, errCB) {
+        // Create new object
+        let redisIO = Redis.getIO();
+
+        async function transaction(attempts) {
+            // Watch to prevent conflicts
+            redisIO.watch(userID, async (watchErr) => {
+                try {
+                    if (watchErr) {
+                        throw(watchErr);
+                    }
+
+                    if (!consts.SUPPORTED_LANGUAGES.includes(language)) {
+                        throw new Error(`Language ${language} not supported`);
+                    }
+
+                    let user = await Users.get(userID);
+                    if (!user) {
+                        throw new Error(`User ${userID} not found`);
+                    }
+
+                    // Set user language
+                    user.language = language;
+
+                    // Create transaction
+                    let multi = redisIO.multi();
+                    multi.set(userID, JSON.stringify(user), redis.print);
+                    multi.exec((multiErr, replies) => {
+                        if (multiErr) {
+                            throw(multiErr);
+                        }
+
+                        if (replies) {
+                            replies.forEach(function(reply, index) {
+                                console.log('User set language transaction: ' +
+                                    reply.toString());
+                            });
+
+                            // In case of success, call the callback, if provided
+                            if (cb) {
+                                cb(user);
+                            }
+
+                            return user;
+                        } else {
+                            if (attempts > 0) {
+                                console.log('User set name language conflict, retrying...');
                                 return transaction(--attempts);
                             } else {
                                 return undefined;

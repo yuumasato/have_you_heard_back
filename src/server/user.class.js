@@ -6,6 +6,7 @@ module.exports = class User {
         this.name = "user";
         this.id = id;
         this.room = undefined;
+        this.language = undefined;
     }
 
 };

@@ -7,9 +7,16 @@ const Server = require('../server/server.service');
 module.exports = function(socket) {
     socket.on('new room', async () => {
         let userID = `user_${socket.id}`;
+        let user = await Users.get(userID);
+
+        // Check if the user exists
+        if (!user) {
+            console.error(`User ${userID} not found`);
+            return;
+        }
 
         // Provide callback to call when the creation is successful
-        Rooms.create((room) => {
+        Rooms.create(user, (room) => {
             console.log(`new room ${room.id}`);
 
             // Join the socket before adding to receive back the broadcast with the
@@ -36,6 +43,9 @@ module.exports = function(socket) {
                 }
 
                 if (newRoom) {
+                    // Set the new room language as the creator language
+                    newRoom.language = user.language;
+
                     // Replace user IDs with complete user JSONs and send
                     Rooms.complete(newRoom, (room) => {
                         console.debug(`room:\n` + JSON.stringify(room, null, 2));

@@ -138,6 +138,10 @@ module.exports = class Rooms {
                             throw new Error(`Room ${newRoomID} not found`);
                         }
 
+                        if (newRoom.language !== user.language) {
+                            throw new Error(`User language ${user.language} does not match room language ${newRoom.language}`);
+                        }
+
                         // Insert the user to the new room
                         if (!newRoom.users.includes(userID)) {
                             newRoom.users.push(userID);
@@ -218,7 +222,7 @@ module.exports = class Rooms {
      * Create a new room and call the providede callback passing the created
      * room object.
      * */
-    static async create(cb, errCB) {
+    static async create(user, cb, errCB) {
         // Create new object
         let redisIO = Redis.getIO();
 
@@ -240,7 +244,7 @@ module.exports = class Rooms {
                     }
 
                     // Create transaction
-                    let room = new Room(roomID);
+                    let room = new Room(roomID, user.language);
                     let multi = redisIO.multi();
                     multi.set(roomID, JSON.stringify(room), redis.print);
                     multi.exec((multiErr, replies) => {
