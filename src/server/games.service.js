@@ -13,6 +13,7 @@ module.exports = class Games {
     static instance = null;
 
     constructor() {
+        this.headlines_pool = [];
     }
 
     static init() {
@@ -40,25 +41,17 @@ module.exports = class Games {
         return undefined;
     }
 
-
     /**
      * Get the headlines for the game
      */
     static async headlines(language) {
-
-        //TODO get headlines from the database
-
-        let headlines = [
-            "Mock headline _____ round 1",
-            "Mock headline _____ round 2",
-            "Mock headline _____ round 3",
-        ];
-
+        let server = Server.getInstance();
+        let headlines = await server.nextHeadlines(language);
         return headlines;
     }
 
     /**
-     * Create a new game and call the providede callback passing the created
+     * Create a new game and call the provided callback passing the created
      * game object.
      * */
     static async create(room, cb, errCB) {
@@ -93,14 +86,12 @@ module.exports = class Games {
                     game.numRounds = 3;
                     game.currentRound = 0;
 
-                    // TODO: get headlines ramdomly
                     let allPromises = [];
                     for (let player of room.users) {
                         allPromises.push(Users.get(player));
                     }
 
-                    //TODO provide language
-                    let headlines = Games.headlines(undefined);
+                    let headlines = Games.headlines(room.language);
 
                     Promise.all(allPromises).then(async (values) => {
 

@@ -122,6 +122,7 @@
             <h1 align="center">Have you heard?</h1>
             <h5 id="gamePersona"></h5>
             <h5 id="gameInstructions"></h5>
+            <p id="winnerHeadline"></p>
             <p id="gameHeadline"></p>
             <form class="form" id="gameForm" action=""></form>
         </div>
@@ -156,9 +157,10 @@
         var gameInstructions = document.getElementById('gameInstructions');
         var gamePersona = document.getElementById('gamePersona');
         var gameHeadline = document.getElementById('gameHeadline');
+        var winnerHeadline = document.getElementById('winnerHeadline');
 
         var languages = [{"text": "🇧🇷", "value": "pt"},
-                         {"text": "🇪🇸", "value": "es"}];
+        {"text": "🇪🇸", "value": "es"}];
         //var languages = ["pt", "es"];
 
         var gameState = undefined;
@@ -167,6 +169,8 @@
         var currentRound = 0;
         var numRounds = 3;
         var myName = "user";
+
+        var roundAnswers = {};
 
         showName();
 
@@ -447,7 +451,12 @@
 
             gameForm.addEventListener('submit', answerButton);
             gameInstructions.textContent = "";
-            gameHeadline.textContent = game.headlines[round];
+            winnerHeadline.textContent = "";
+
+            var regex = /\[.*\]/;
+            var headline = game.headlines[round]['headline'].replace(regex,
+                '_____');
+            gameHeadline.textContent = headline;
         }
 
         function continueButton(e) {
@@ -461,19 +470,26 @@
             }
         }
 
-        function showRoundWinner(winner) {
+        function showRoundWinner(winner, round) {
             // Remove previous content
             gameForm.innerHTML = "";
-            gameHeadline.textContent = "";
-
             var winnerName;
+            var winnerAnswer;
             gameState.players.find((p) => {
                 if (p.id === winner) {
                     winnerName = p.name;
+                    winnerAnswer = roundAnswers[p.id];
                 }
             });
 
+            var regex = /\[.*\]/;
             gameInstructions.textContent = `Vencedor da rodada: ${winnerName}`;
+            winnerHeadline.textContent = "Resposta vencedora: " +
+                game.headlines[round]['headline']
+                    .replace(regex, "[" + winnerAnswer + "]");
+            gameHeadline.textContent = "Resposta correta: " +
+                game.headlines[round]['headline'];
+
 
             var b = document.createElement("button");
             b.setAttribute("type", "submit");
@@ -518,6 +534,7 @@
             gameForm.innerHTML = "";
 
             gameHeadline.textContent = "";
+            winnerHeadline.textContent = "";
 
             var winnerName;
 
@@ -641,6 +658,8 @@
                 // Remove event listener
                 gameForm.removeEventListener('submit', answerButton);
 
+                roundAnswers = answers;
+
                 showAnswers(answers);
             }
             else {
@@ -655,9 +674,8 @@
                 gameForm.removeEventListener('submit',
                     voteAnswerButton);
 
+                showRoundWinner(winner, currentRound);
                 currentRound++;
-
-                showRoundWinner(winner);
             }
             else {
                 post('Invalid round winner message');

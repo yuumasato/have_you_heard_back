@@ -9,9 +9,9 @@ const Server = require('./server.service');
  * @param[io] socket.io instance
  *
  * */
-module.exports = function (ex, io) {
+module.exports = function (ex, io, db) {
 
-    Server.init(ex, io);
+    Server.init(ex, io, db);
 
     // Initialize server API
     require('./api')(ex);
