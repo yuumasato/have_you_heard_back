@@ -4,6 +4,8 @@ const Rooms = require('../server/rooms.service');
 const Server = require('../server/server.service');
 const Games = require('../server/games.service');
 
+const debug = require('debug')('have_you_heard');
+
 // Initialize event listener
 module.exports = function(socket) {
     socket.on('disconnect', async () => {
@@ -20,7 +22,7 @@ module.exports = function(socket) {
                     let io = Server.getIO();
                     // If the user was in the game
                     if (game) {
-                        console.debug(`game:\n` + JSON.stringify(game, null, 2));
+                        debug(`game:\n` + JSON.stringify(game, null, 2));
                         console.log(`user ${user.id} left the game ${game.id}`);
                     }
                 }, (err) => {
@@ -38,7 +40,7 @@ module.exports = function(socket) {
                         if (oldRoom.users.length > 0) {
                             // Replace user IDs with complete user JSONs and send
                             Rooms.complete(oldRoom, (room) => {
-                                console.debug(`room:\n` + JSON.stringify(room, null, 2));
+                                debug(`room:\n` + JSON.stringify(room, null, 2));
                                 io.to(room.id).emit('room', JSON.stringify(room));
                             }, (err) => {
                                 console.error(err);

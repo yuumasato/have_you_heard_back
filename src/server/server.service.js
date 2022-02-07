@@ -5,6 +5,8 @@ const Room = require('./room.class');
 const consts = require('./consts');
 const {Client} = require('pg');
 
+const debug = require('debug')('have_you_heard');
+
 module.exports = class Server {
 
     static instance = null;
@@ -87,7 +89,7 @@ module.exports = class Server {
         return db.query(q)
             .then(res => {
                 for (let row of res.rows) {
-                    console.log(JSON.stringify(row));
+                    debug(JSON.stringify(row));
                 }
 
                 if ((offset + limit) > this.headlines_count[lang]) {
@@ -147,8 +149,8 @@ module.exports = class Server {
 
                     await this.do_fetch(db, lang);
 
-                    console.log(`headlines_offset: `, this.headlines_offset);
-                    console.log(`headlines_count: `, this.headlines_count);
+                    debug(`headlines_offset: `, this.headlines_offset);
+                    debug(`headlines_count: `, this.headlines_count);
                     console.log(`Initialized headlines for language ${lang}`);
                 })
                 .catch(err => {
@@ -165,7 +167,7 @@ module.exports = class Server {
     }
 
     async nextHeadlines(lang) {
-        console.log(JSON.stringify(this.headlines));
+        debug(JSON.stringify(this.headlines));
         if (this.headlines[lang].length >= 3) {
             return this.headlines[lang].splice(0, 3);
         } else {

@@ -4,6 +4,8 @@ const Users = require('../server/users.service');
 const Rooms = require('../server/rooms.service');
 const Server = require('../server/server.service');
 
+const debug = require('debug')('have_you_heard');
+
 // Initialize event listener
 module.exports = function(socket) {
     socket.on('answer', async function answer_handler(answer) {
@@ -52,11 +54,11 @@ module.exports = function(socket) {
 
             if (allAnswered) {
                 console.log(`All answers gathered for game ${game.id}`);
-                console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
+                debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 let io = Server.getIO();
                 io.to(user.room).emit('round answers', JSON.stringify(answers));
             } else {
-                console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
+                debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 console.log(`Game (${game.id}): Waiting for other players to answer`);
             }
         }, (err) => {

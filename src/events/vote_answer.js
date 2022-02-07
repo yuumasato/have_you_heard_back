@@ -4,6 +4,8 @@ const Users = require('../server/users.service');
 const Rooms = require('../server/rooms.service');
 const Server = require('../server/server.service');
 
+const debug = require('debug')('have_you_heard');
+
 // Initialize event listener
 module.exports = function(socket) {
     socket.on('vote answer', async function vote_answer_handler(chosen) {
@@ -58,7 +60,7 @@ module.exports = function(socket) {
                 let winner = undefined;
                 let keys = Object.keys(sumVotes);
 
-                console.debug(`All voted, find winner`);
+                debug(`All voted, find winner`);
                 // Check winner answer
                 for (k of keys) {
                     if (!winner) {
@@ -93,8 +95,8 @@ module.exports = function(socket) {
                 }
 
                 console.log(`Round winner for game ${game.id}: ${winner}`);
-                console.debug(`Round ${game.round} of ${game.numRounds}`);
-                console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
+                debug(`Round ${game.round} of ${game.numRounds}`);
+                debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 let io = Server.getIO();
                 io.to(user.room).emit('round winner', winner);
 
@@ -111,14 +113,14 @@ module.exports = function(socket) {
                             console.log(`Failed to end game ${game.id}: ` + err);
                         });
                     } else {
-                        console.debug(`Game round initialized for game ${startedGame.id}`);
-                        console.debug(`game:\n` + JSON.stringify(startedGame, null, 2));
+                        debug(`Game round initialized for game ${startedGame.id}`);
+                        debug(`game:\n` + JSON.stringify(startedGame, null, 2));
                     }
                 }, (err) => {
                     console.error(`Failed to initialize new round for game ${retGame.id}: ` + err);
                 });
             } else {
-                console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
+                debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 console.log(`Game (${game.id}): Waiting for other players to vote`);
             }
         }, (err) => {

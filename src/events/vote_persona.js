@@ -4,6 +4,8 @@ const Users = require('../server/users.service');
 const Rooms = require('../server/rooms.service');
 const Server = require('../server/server.service');
 
+const debug = require('debug')('have_you_heard');
+
 // Initialize event listener
 module.exports = function(socket) {
     socket.on('vote persona', async function vote_persona_handler(persona) {
@@ -69,18 +71,18 @@ module.exports = function(socket) {
                 }
 
                 console.log(`Persona defined for game ${game.id}: ${winner}`);
-                console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
+                debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 let io = Server.getIO();
                 io.to(user.room).emit('persona', winner);
 
                 Games.nextRound(retGame, undefined, (startedGame) => {
-                    console.debug(`Game round initialized for game ${startedGame.id}`);
-                    console.debug(`game:\n` + JSON.stringify(startedGame, null, 2));
+                    debug(`Game round initialized for game ${startedGame.id}`);
+                    debug(`game:\n` + JSON.stringify(startedGame, null, 2));
                 }, (err) => {
                     console.err(`Failed to initialize new round for game ${startedGame.id}: ` + err);
                 });
             } else {
-                console.debug(`game:\n` + JSON.stringify(retGame, null, 2));
+                debug(`game:\n` + JSON.stringify(retGame, null, 2));
                 console.log(`Game (${game.id}): Waiting for other players to vote`);
             }
         }, (err) => {
