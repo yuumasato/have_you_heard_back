@@ -5,6 +5,7 @@ A game about misunderstanding.
 ## Dependencies
 
 This is a node.js module using socket.io, redis, cluster, and express.
+A postgres database is used.
 
 With git and npm installed, you can run:
 
@@ -15,6 +16,25 @@ $ npm install
 ```
 
 Check the package.json content for details.
+
+## Database setup
+
+To store the game data a postgres database is used.
+The module expects the database connection url to be set on the DATABASE_URL env
+variable.  See the ``scripts/init_env.sh`` for details.
+
+A database called ``have_you_heard`` is expected to be accessible containing a
+table for each supported language, named ``<language>_headlines`` (e.g.
+``pt_headlines`` for portuguese).
+
+The tables should be populated with 3 columns
+
+```
+| id | link | headline |
+```
+
+The headline should be a string where the part to be replaced is marked between
+``[]`` (e.g. ``This is a [valid] string.``).
 
 ## How to run
 
@@ -49,6 +69,10 @@ $ node src
 To make the console output verbose for debugging, you can set the DEBUG
 environment variable:
 
+```
+$ DEBUG=have_you_heard node --trace-warnings src
+```
+or make the debug verbose for all packages:
 ```
 $ DEBUG=* node --trace-warnings src
 ```
