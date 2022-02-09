@@ -158,7 +158,7 @@ module.exports = class Games {
             let found = false;
             // Remove the player from the game only if the player was in
             // the game
-            game.players.find((p, i) => {
+            game.players.find((p) => {
                 if (p.id === userID) {
                     found = true;
                 }
@@ -182,7 +182,7 @@ module.exports = class Games {
                 // If the list of players become empty, set expiration
                 // time
                 if (game.players.length <= 0) {
-                    multi.expire(gameID, 300, redis.print);
+                    multi.del(gameID, redis.print);
                     console.log(`Game ${gameID} is empty and will be deleted`);
                 }
             } else {

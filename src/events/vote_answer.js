@@ -113,7 +113,7 @@ module.exports = function(socket) {
                     }
 
                     console.log(`Round winner for game ${retGame.id}: ${winner}`);
-                    debug(`Round ${retGame.round} of ${retGame.numRounds}`);
+                    debug(`Round ${retGame.currentRound} of ${retGame.numRounds}`);
                     let io = Server.getIO();
                     io.to(user.room).emit('round winner', winner);
 
@@ -125,12 +125,6 @@ module.exports = function(socket) {
                             }
 
                             io.to(user.room).emit('game winner', JSON.stringify(startedGame.match));
-
-                            await Games.endGame(redisIO, startedGame.id, (endedGame) => {
-                                console.log(`Game ${endedGame.id} ended`);
-                            }, (err) => {
-                                console.log(`Failed to end game ${startedGame.id}: ` + err);
-                            });
                         } else {
                             debug(`Game round initialized for game ${startedGame.id}`);
                         }

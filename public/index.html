@@ -525,6 +525,7 @@
                 roomState = undefined;
                 showChooseRoom();
             } else {
+                socket.emit('rematch');
                 showStart();
             }
         }

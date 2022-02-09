@@ -26,6 +26,7 @@ module.exports = function(socket) {
                     require('./vote_persona')(socket);
                     require('./answer')(socket);
                     require('./vote_answer')(socket);
+                    require('./rematch')(socket);
                 } else {
                     console.error('Could not create user');
                 }

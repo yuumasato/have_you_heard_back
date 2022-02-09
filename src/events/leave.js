@@ -1,4 +1,5 @@
 // Event: leave
+const Games = require('../server/games.service');
 const Users = require('../server/users.service');
 const Rooms = require('../server/rooms.service');
 const Server = require('../server/server.service');
@@ -13,6 +14,14 @@ module.exports = function(socket) {
         await Redis.getIO(async (redisIO) => {
             let user = await Users.get(redisIO, userID);
             if (user) {
+                if(user.game) {
+                    await Games.removePlayer(redisIO, userID, user.game, (game) => {
+                        console.log(`Removed player ${user.name} from game ${game.id}`);
+                    }, (err) => {
+                        console.error(`Could not remove user ${userID} from game ${user.game}: ` + err);
+                    });
+                }
+
                 if (user.room) {
                     await Rooms.removeUser(redisIO, userID, user.room, async (result) => {
                         let io = Server.getIO();

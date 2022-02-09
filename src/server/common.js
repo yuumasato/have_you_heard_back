@@ -18,6 +18,7 @@ async function runWithRetries(operation, cb, errCB) {
     for (var i = 0; i < attempts; i++) {
         p = p.catch(operation)
         .then((results) => {
+            debug(`Retry result: ${results}`);
             return results;
         })
         .catch(rejectDelay);
