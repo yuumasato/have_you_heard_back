@@ -138,8 +138,10 @@ module.exports = class Rooms {
                             throw new Error(`Room ${newRoomID} not found`);
                         }
 
+                        // TODO: emit warning message
                         if (newRoom.language !== user.language) {
-                            throw new Error(`User language ${user.language} does not match room language ${newRoom.language}`);
+                            console.warn(`User language ${user.language} does `+
+                                `not match room language ${newRoom.language}`);
                         }
 
                         // Insert the user to the new room
