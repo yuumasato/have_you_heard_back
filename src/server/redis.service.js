@@ -23,6 +23,7 @@ module.exports = class RedisService {
 
             // Connection used for normal IO
             RedisService.instance.io = createClient(url);
+
             RedisService.instance.io.on('connect', function () {
                 console.log('redis IO connected');
             });
@@ -46,6 +47,10 @@ module.exports = class RedisService {
             RedisService.instance.sub.on('error', function (error) {
                 console.log(error);
             });
+
+            RedisService.instance.pub.connect();
+            RedisService.instance.sub.connect();
+            RedisService.instance.io.connect();
         }
     }
 
@@ -75,31 +80,26 @@ module.exports = class RedisService {
 
     static async get(key) {
         let client = RedisService.getIO();
-        const getAsync = promisify(client.get).bind(client);
-        return getAsync(key);
+        return client.get(key);
     }
 
     static async set(key, value) {
         let client = RedisService.getIO();
-        const setAsync = promisify(client.set).bind(client);
-        return setAsync(key, value);
+        return client.set(key, value);
     }
 
     static async del(key) {
         let client = RedisService.getIO();
-        const delAsync = promisify(client.del).bind(client);
-        return delAsync(key);
+        return client.del(key);
     }
 
     static async keys(pattern) {
         let client = RedisService.getIO();
-        const keysAsync = promisify(client.keys).bind(client);
-        return keysAsync(pattern);
+        return client.keys(pattern);
     }
 
     static async exists(key) {
         let client = RedisService.getIO();
-        const existAsync = promisify(client.exists).bind(client);
-        return existAsync(key);
+        return client.exists(key);
     }
 };
