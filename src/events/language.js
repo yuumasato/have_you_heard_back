@@ -4,7 +4,7 @@ const consts = require('../server/consts');
 
 // Initialize event listener
 module.exports = function(socket) {
-    socket.on('language', (language) => {
+    socket.on('language', async (language) => {
 
         // TODO emit error
         if (!consts.SUPPORTED_LANGUAGES.includes(language)) {
@@ -15,7 +15,7 @@ module.exports = function(socket) {
         let userID = `user_${socket.id}`
         console.log(`(${userID}) set language to ${language}`);
 
-        Users.setLanguage(`${userID}`, language, (user) => {
+        await Users.setLanguage(`${userID}`, language, (user) => {
             console.log(`User ${user.name} set language as ${language}`);
         }).catch((msg) => {
             console.error(`Failed to set user ${userID} language to ${language}: `

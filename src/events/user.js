@@ -9,7 +9,7 @@ module.exports = function(socket) {
         console.log(`received user ID from ${socket.id}: ` + id);
 
         // Create user
-        Users.create(`user_${socket.id}`, (user) => {
+        await Users.create(`user_${socket.id}`, (user) => {
             if (user) {
                 socket.emit('user id', `${user.id}`);
 

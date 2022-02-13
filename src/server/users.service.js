@@ -4,8 +4,10 @@ const redis = require('redis');
 const User = require('./user.class');
 const Room = require('./room.class');
 const Redis = require('./redis.service');
+const { runWithRetries } = require('./common');
 
 const consts = require('./consts');
+const common = require('./common');
 
 // The class is given when something requires this module
 module.exports = class Users {
@@ -33,74 +35,39 @@ module.exports = class Users {
      * Create a new user and call the providede callback passing the created
      * user object.
      * */
-    static async create(userID, cb, errCB) {
+    static create(userID, cb, errCB) {
         // Create new object
         let user = new User(userID);
         let redisIO = Redis.getIO();
 
-        async function transaction(attempts) {
-            // Watch to prevent conflicts
-            redisIO.watch(userID, async (watchErr) => {
-                try {
-                    if (watchErr) {
-                        throw(watchErr);
-                    }
+        async function op() {
+            await redisIO.watch(userID);
 
-                    let exist = await Redis.exists(userID);
+            let exist = await Redis.exists(userID);
 
-                    if (exist) {
-                        throw new Error(`User ${userID} already exists`);
-                    }
+            if (exist) {
+                throw new Error(`User ${userID} already exists`);
+            }
 
-                    // Create transaction
-                    let multi = redisIO.multi();
-                    multi.set(userID, JSON.stringify(user), redis.print);
-                    multi.exec((multiErr, replies) => {
-                        if (multiErr) {
-                            throw(multiErr);
-                        }
+            // Create transaction
+            let multi = redisIO.multi();
+            await multi.set(userID, JSON.stringify(user), redis.print);
 
-                        if (replies) {
-                            replies.forEach(function(reply, index) {
-                                console.log('User create transaction: ' + reply.toString());
-                            });
-
-                            // In case of success, call the callback, if provided
-                            if (cb) {
-                                cb(user);
-                            }
-
-                            return user;
-                        } else {
-                            if (attempts > 0) {
-                                console.log('User create transaction conflict, retrying...');
-                                return transaction(--attempts);
-                            } else {
-                                return undefined;
-                            }
-                        }
+            return multi.exec()
+            .then((replies) => {
+                if (replies) {
+                    replies.forEach(function (reply, index) {
+                        console.log(`User create transaction [${index}]: ${reply}`);
                     });
-                } catch (err) {
-                    if (errCB) {
-                        errCB(err);
-                    } else {
-                        console.error(err);
-                    }
+
+                    return user;
+                } else {
+                    throw 'User create transaction conflict';
                 }
             });
         }
 
-        // Retry up to 5 times
-        let resultPromise = new Promise((resolve, reject) => {
-            try {
-                transaction(5);
-                resolve('ok');
-            } catch(err) {
-                reject(err);
-            }
-        });
-
-        return resultPromise;
+        return common.runWithRetries(op, cb, errCB);
     }
 
     static async get(userID) {
@@ -121,155 +88,85 @@ module.exports = class Users {
      * Set the user name. If a callback is provided, call it passing the
      * modified user object, if the transaction was successful
      * */
-    static async setName(userID, name, cb, errCB) {
+    static setName(userID, name, cb, errCB) {
         // Create new object
         let redisIO = Redis.getIO();
 
-        async function transaction(attempts) {
+        async function op() {
             // Watch to prevent conflicts
-            redisIO.watch(userID, async (watchErr) => {
-                try {
-                    if (watchErr) {
-                        throw(watchErr);
-                    }
+            await redisIO.watch(userID);
 
-                    let user = await Users.get(userID);
-                    if (!user) {
-                        throw new Error(`User ${userID} not found`);
-                    }
+            let user = await Users.get(userID);
+            if (!user) {
+                throw new Error(`User ${userID} not found`);
+            }
 
-                    // Set user name
-                    user.name = name;
+            // Set user name
+            user.name = name;
 
-                    // Create transaction
-                    let multi = redisIO.multi();
-                    multi.set(userID, JSON.stringify(user), redis.print);
-                    multi.exec((multiErr, replies) => {
-                        if (multiErr) {
-                            throw(multiErr);
-                        }
+            // Create transaction
+            let multi = redisIO.multi();
+            multi.set(userID, JSON.stringify(user), redis.print);
 
-                        if (replies) {
-                            replies.forEach(function(reply, index) {
-                                console.log('User set name transaction: ' + reply.toString());
-                            });
-
-                            // In case of success, call the callback, if provided
-                            if (cb) {
-                                cb(user);
-                            }
-
-                            return user;
-                        } else {
-                            if (attempts > 0) {
-                                console.log('User set name transaction conflict, retrying...');
-                                return transaction(--attempts);
-                            } else {
-                                return undefined;
-                            }
-                        }
+            return multi.exec()
+            .then((replies) => {
+                if (replies) {
+                    replies.forEach(function(reply, index) {
+                        console.log(`User set name transaction [${index}]: ${reply}`);
                     });
-                } catch(err) {
-                    if (errCB) {
-                        errCB(err);
-                    } else {
-                        console.error(err);
-                    }
+
+                    return user;
+                } else {
+                    throw 'User set name transaction conflict';
                 }
             });
         }
 
-        // Retry up to 5 times
-        let resultPromise = new Promise((resolve, reject) => {
-            try {
-                transaction(5);
-                resolve('ok');
-            } catch(err) {
-                reject(err);
-            }
-        });
-
-        return resultPromise;
+        return runWithRetries(op, cb, errCB);
     }
 
     /**
      * Set the user language. If a callback is provided, call it passing the
      * modified user object, if the transaction was successful
      * */
-    static async setLanguage(userID, language, cb, errCB) {
+    static setLanguage(userID, language, cb, errCB) {
         // Create new object
         let redisIO = Redis.getIO();
 
-        async function transaction(attempts) {
+        async function op() {
             // Watch to prevent conflicts
-            redisIO.watch(userID, async (watchErr) => {
-                try {
-                    if (watchErr) {
-                        throw(watchErr);
-                    }
+            await redisIO.watch(userID);
 
-                    if (!consts.SUPPORTED_LANGUAGES.includes(language)) {
-                        throw new Error(`Language ${language} not supported`);
-                    }
+            if (!consts.SUPPORTED_LANGUAGES.includes(language)) {
+                throw new Error(`Language ${language} not supported`);
+            }
 
-                    let user = await Users.get(userID);
-                    if (!user) {
-                        throw new Error(`User ${userID} not found`);
-                    }
+            let user = await Users.get(userID);
+            if (!user) {
+                throw new Error(`User ${userID} not found`);
+            }
 
-                    // Set user language
-                    user.language = language;
+            // Set user language
+            user.language = language;
 
-                    // Create transaction
-                    let multi = redisIO.multi();
-                    multi.set(userID, JSON.stringify(user), redis.print);
-                    multi.exec((multiErr, replies) => {
-                        if (multiErr) {
-                            throw(multiErr);
-                        }
-
-                        if (replies) {
-                            replies.forEach(function(reply, index) {
-                                console.log('User set language transaction: ' +
-                                    reply.toString());
-                            });
-
-                            // In case of success, call the callback, if provided
-                            if (cb) {
-                                cb(user);
-                            }
-
-                            return user;
-                        } else {
-                            if (attempts > 0) {
-                                console.log('User set name language conflict, retrying...');
-                                return transaction(--attempts);
-                            } else {
-                                return undefined;
-                            }
-                        }
+            // Create transaction
+            let multi = redisIO.multi();
+            multi.set(userID, JSON.stringify(user), redis.print);
+            return multi.exec()
+            .then((replies) => {
+                if (replies) {
+                    replies.forEach(function(reply, index) {
+                        console.log(`User set language transaction [${index}]: ${reply}`);
                     });
-                } catch(err) {
-                    if (errCB) {
-                        errCB(err);
-                    } else {
-                        console.error(err);
-                    }
+
+                    return user;
+                } else {
+                    throw 'User set language transaction conflict';
                 }
             });
         }
 
-        // Retry up to 5 times
-        let resultPromise = new Promise((resolve, reject) => {
-            try {
-                transaction(5);
-                resolve('ok');
-            } catch(err) {
-                reject(err);
-            }
-        });
-
-        return resultPromise;
+        return runWithRetries(op, cb, errCB);
     }
 
     static async destroy(userID) {
