@@ -45,6 +45,10 @@ module.exports = function(socket) {
             // Check if all the players voted
             for (let p of retGame.players) {
                 if (p.answerVote) {
+                    // Only count valid votes
+                    if (p.answerVote == "No voted answer") {
+                        continue;
+                    }
                     if (p.answerVote in sumVotes) {
                         sumVotes[p.answerVote]++;
                     } else {
