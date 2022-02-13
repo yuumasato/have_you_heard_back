@@ -97,6 +97,20 @@ module.exports = function(socket) {
                         }
                     }
                 }
+                // No one voted, so there is no obvious winner
+                // Let's find out who provided the fastest answer
+                if (winner == undefined) {
+                    let fastest_player = undefined;
+                    for (let p of retGame.players) {
+                        if (fastest_player == undefined) {
+                            fastest_player = p;
+                        }
+                        if (p.answer['time'] < fastest_player.answer['time']) {
+                            fastest_player = p;
+                        }
+                    }
+                    winner = fastest_player.id
+                }
 
                 console.log(`Round winner for game ${game.id}: ${winner}`);
                 debug(`Round ${game.round} of ${game.numRounds}`);
