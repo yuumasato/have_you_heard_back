@@ -8,6 +8,9 @@ module.exports = function(ex) {
     ex.get('/', (req, res) => {
         res.sendFile('index.html', { root: 'public'});
     });
+    ex.get('/privacidade', (req, res) => {
+        res.sendFile('privacy_policy.html', { root: 'public'});
+    });
 
     ex.get('/redis/set', async (req, res) => {
         key = req.query.key;
