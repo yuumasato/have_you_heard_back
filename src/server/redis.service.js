@@ -1,16 +1,17 @@
 // Redis service
 
 // Stores the singleton redis connection for this instance
-const assert = require("assert");
-const { AbortError, AggregateError, ReplyError } = require("redis");
 const { createClient } = require('redis');
-const { promisify } = require("util");
+const { runWithRetries } = require('./common');
+const consts = require('./consts');
+const debug = require('debug')('transactions');
 
 module.exports = class RedisService {
 
     static instance = null;
 
     constructor() {
+        this.pool = [];
     }
 
     static init(url) {
@@ -22,15 +23,20 @@ module.exports = class RedisService {
             RedisService.instance.sub = RedisService.instance.pub.duplicate();
 
             // Connection used for normal IO
-            RedisService.instance.io = createClient(url);
+            for (let i = 0; i < consts.NUM_REDIS_IO; i++) {
+                RedisService.instance.io = createClient(url);
 
-            RedisService.instance.io.on('connect', function () {
-                console.log('redis IO connected');
-            });
+                RedisService.instance.io.on('connect', function () {
+                    console.log('redis IO connected');
+                });
 
-            RedisService.instance.io.on('error', function (error) {
-                console.log(error);
-            });
+                RedisService.instance.io.on('error', function (error) {
+                    console.log(error);
+                });
+                RedisService.instance.io.connect();
+
+                RedisService.instance.pool.push(RedisService.instance.io);
+            }
 
             RedisService.instance.pub.on('connect', function () {
                 console.log('redis publisher connected');
@@ -50,7 +56,6 @@ module.exports = class RedisService {
 
             RedisService.instance.pub.connect();
             RedisService.instance.sub.connect();
-            RedisService.instance.io.connect();
         }
     }
 
@@ -70,36 +75,80 @@ module.exports = class RedisService {
         return RedisService.instance.pub;
     }
 
-    static getIO() {
+    static getIO(cb, errCB) {
         if (RedisService.instance == null) {
             RedisService.init(process.env.REDIS_URL ||
                               {host: 'localhost', port: 6379});
         }
-        return RedisService.instance.io;
+
+        async function op() {
+            let io = RedisService.instance.pool.pop();
+
+            if (io) {
+                debug('Got IO');
+                return io;
+            } else {
+                throw 'IO not available';
+            }
+        }
+
+        return runWithRetries(op, cb, errCB);
+    }
+
+    static returnIO(redisIO) {
+        if (!RedisService.instance.pool.includes(redisIO)) {
+            RedisService.instance.pool.push(redisIO);
+            debug('Returned IO');
+        }
     }
 
     static async get(key) {
-        let client = RedisService.getIO();
-        return client.get(key);
+        await RedisService.getIO((io) => {
+            let result = client.get(key);
+            RedisService.returnIO(io);
+            return result;
+        }, (err) => {
+            console.error('Failed to get Redis IO');
+        });
     }
 
     static async set(key, value) {
-        let client = RedisService.getIO();
-        return client.set(key, value);
+        await RedisService.getIO((io) => {
+            let result = client.set(key, value);
+            RedisService.returnIO(io);
+            return result;
+        }, (err) => {
+            console.error('Failed to get Redis IO');
+        });
     }
 
     static async del(key) {
-        let client = RedisService.getIO();
-        return client.del(key);
+        await RedisService.getIO((io) => {
+            let result = client.del(key);
+            RedisService.returnIO(io);
+            return result;
+        }, (err) => {
+            console.error('Failed to get Redis IO');
+        });
     }
 
     static async keys(pattern) {
-        let client = RedisService.getIO();
-        return client.keys(pattern);
+        await RedisService.getIO((io) => {
+            let result = client.keys(pattern);
+            RedisService.returnIO(io);
+            return result;
+        }, (err) => {
+            console.error('Failed to get Redis IO');
+        });
     }
 
     static async exists(key) {
-        let client = RedisService.getIO();
-        return client.exists(key);
+        await RedisService.getIO((io) => {
+            let result = client.exists(key);
+            RedisService.returnIO(io);
+            return result;
+        }, (err) => {
+            console.error('Failed to get Redis IO');
+        });
     }
 };
