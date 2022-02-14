@@ -1,6 +1,7 @@
 // Event: user
 
 const Users = require('../server/users.service');
+const Redis = require('../server/redis.service');
 
 // Initialize event listener
 module.exports = function(socket) {
@@ -8,27 +9,33 @@ module.exports = function(socket) {
         //TODO for now, we ignore the provided ID and always create a new user
         console.log(`received user ID from ${socket.id}: ` + id);
 
-        // Create user
-        await Users.create(`user_${socket.id}`, (user) => {
-            if (user) {
-                socket.emit('user id', `${user.id}`);
+        await Redis.getIO(async (io) => {
+            // Create user
+            await Users.create(io, `user_${socket.id}`, (user) => {
+                if (user) {
+                    socket.emit('user id', `${user.id}`);
 
-                // Listen to these events
-                require('./message')(socket);
-                require('./join')(socket);
-                require('./leave')(socket);
-                require('./new_room')(socket);
-                require('./name')(socket);
-                require('./language')(socket);
-                require('./start')(socket);
-                require('./vote_persona')(socket);
-                require('./answer')(socket);
-                require('./vote_answer')(socket);
-            } else {
-                console.error('Could not create user');
-            }
+                    // Listen to these events
+                    require('./message')(socket);
+                    require('./join')(socket);
+                    require('./leave')(socket);
+                    require('./new_room')(socket);
+                    require('./name')(socket);
+                    require('./language')(socket);
+                    require('./start')(socket);
+                    require('./vote_persona')(socket);
+                    require('./answer')(socket);
+                    require('./vote_answer')(socket);
+                } else {
+                    console.error('Could not create user');
+                }
+                // Unlock Redis IO connection
+                Redis.returnIO(io);
+            }, (err) => {
+                console.error('Could not create user: ' + err);
+            });
         }, (err) => {
-            console.error('Could not create user: ' + err);
+            console.error('Could not get Redis IO');
         });
     });
 };

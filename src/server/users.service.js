@@ -35,15 +35,14 @@ module.exports = class Users {
      * Create a new user and call the providede callback passing the created
      * user object.
      * */
-    static create(userID, cb, errCB) {
+    static async create(redisIO, userID, cb, errCB) {
         // Create new object
         let user = new User(userID);
-        let redisIO = Redis.getIO();
 
         async function op() {
             await redisIO.watch(userID);
 
-            let exist = await Redis.exists(userID);
+            let exist = await redisIO.exists(userID);
 
             if (exist) {
                 throw new Error(`User ${userID} already exists`);
@@ -70,9 +69,9 @@ module.exports = class Users {
         return common.runWithRetries(op, cb, errCB);
     }
 
-    static async get(userID) {
+    static async get(redisIO, userID) {
         try {
-            let userJSON = await Redis.get(userID);
+            let userJSON = await redisIO.get(userID);
             if (userJSON) {
                 let parsed = JSON.parse(userJSON);
                 parsed.__proto__ = User.prototype;
@@ -88,15 +87,14 @@ module.exports = class Users {
      * Set the user name. If a callback is provided, call it passing the
      * modified user object, if the transaction was successful
      * */
-    static setName(userID, name, cb, errCB) {
+    static setName(redisIO, userID, name, cb, errCB) {
         // Create new object
-        let redisIO = Redis.getIO();
 
         async function op() {
             // Watch to prevent conflicts
             await redisIO.watch(userID);
 
-            let user = await Users.get(userID);
+            let user = await Users.get(redisIO, userID);
             if (!user) {
                 throw new Error(`User ${userID} not found`);
             }
@@ -129,10 +127,7 @@ module.exports = class Users {
      * Set the user language. If a callback is provided, call it passing the
      * modified user object, if the transaction was successful
      * */
-    static setLanguage(userID, language, cb, errCB) {
-        // Create new object
-        let redisIO = Redis.getIO();
-
+    static setLanguage(redisIO, userID, language, cb, errCB) {
         async function op() {
             // Watch to prevent conflicts
             await redisIO.watch(userID);
@@ -141,7 +136,7 @@ module.exports = class Users {
                 throw new Error(`Language ${language} not supported`);
             }
 
-            let user = await Users.get(userID);
+            let user = await Users.get(redisIO, userID);
             if (!user) {
                 throw new Error(`User ${userID} not found`);
             }
@@ -169,9 +164,9 @@ module.exports = class Users {
         return runWithRetries(op, cb, errCB);
     }
 
-    static async destroy(userID) {
+    static async destroy(redisIO, userID) {
         try {
-            return await Redis.del(userID);
+            return await redisIO.del(userID);
         } catch (e) {
             console.error(e);
         }
