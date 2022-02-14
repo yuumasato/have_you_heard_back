@@ -32,9 +32,9 @@ module.exports = class Rooms {
         return Rooms.instance;
     }
 
-    static async get(roomID) {
+    static async get(redisIO, roomID) {
         try {
-            let roomJSON = await Redis.get(roomID);
+            let roomJSON = await redisIO.get(roomID);
             if (roomJSON) {
                 return JSON.parse(roomJSON);
             }
@@ -51,8 +51,7 @@ module.exports = class Rooms {
      *   - oldRoomID undefined means adding the user to a room
      *   - newRoomID undefined means removing the user from a room
      */
-    static swapRooms(userID, oldRoomID, newRoomID, cb, errCB) {
-        let redisIO = Redis.getIO();
+    static swapRooms(redisIO, userID, oldRoomID, newRoomID, cb, errCB) {
         let toWatch = [userID];
 
         if (oldRoomID == newRoomID) {
@@ -79,18 +78,18 @@ module.exports = class Rooms {
             // Watch to prevent conflicts
             await redisIO.watch(toWatch);
 
-            let userPromise = Users.get(userID);
+            let userPromise = Users.get(redisIO, userID);
             let oldRoomPromise = undefined;
             let newRoomPromise = undefined;
             let oldRoom = undefined;
             let newRoom = undefined;
 
             if (oldRoomID) {
-                oldRoomPromise = Rooms.get(oldRoomID);
+                oldRoomPromise = Rooms.get(redisIO, oldRoomID);
             }
 
             if (newRoomID) {
-                newRoomPromise = Rooms.get(newRoomID);
+                newRoomPromise = Rooms.get(redisIO, newRoomID);
             }
 
             let user = await userPromise;
@@ -103,7 +102,7 @@ module.exports = class Rooms {
             if (!oldRoomID && user.room) {
                 await redisIO.watch(user.room);
                 oldRoomID = user.room;
-                oldRoomPromise = Rooms.get(oldRoomID);
+                oldRoomPromise = Rooms.get(redisIO, oldRoomID);
             }
 
             // Remove the user from the old room
@@ -194,10 +193,7 @@ module.exports = class Rooms {
      * Create a new room and call the providede callback passing the created
      * room object.
      * */
-    static create(user, cb, errCB) {
-        // Create new object
-        let redisIO = Redis.getIO();
-
+    static create(redisIO, user, cb, errCB) {
         async function op() {
             // Generate 5 digit ID
             let roomID = 'room_' +
@@ -206,7 +202,7 @@ module.exports = class Rooms {
             // Watch to prevent conflicts
             await redisIO.watch(roomID);
 
-            let exist = await Redis.exists(roomID);
+            let exist = await redisIO.exists(roomID);
             if (exist) {
                 // Try again
                 throw ('Generated room ID already exists');
@@ -233,29 +229,28 @@ module.exports = class Rooms {
         return runWithRetries(op, cb, errCB);
     }
 
-    static async addUser(userID, roomID, cb, errCB) {
-        return Rooms.swapRooms(userID, undefined, roomID, cb, errCB);
+    static async addUser(redisIO, userID, roomID, cb, errCB) {
+        return Rooms.swapRooms(redisIO, userID, undefined, roomID, cb, errCB);
     }
 
-    static async removeUser(userID, roomID, cb, errCB) {
-        return Rooms.swapRooms(userID, roomID, undefined, cb, errCB);
+    static async removeUser(redisIO, userID, roomID, cb, errCB) {
+        return Rooms.swapRooms(redisIO, userID, roomID, undefined, cb, errCB);
     }
 
-    static async destroy(roomID, cb, errCB) {
-        let redisIO = Redis.getIO();
+    static async destroy(redisIO, roomID, cb, errCB) {
 
         async function op () {
             // User transaction to avoid conflicts
             await redisIO.watch(roomID);
 
-            let room = await Rooms.get(roomID);
+            let room = await Rooms.get(redisIO, roomID);
             if (!room) {
                 throw new Error(`Room ${roomID} not found`);
             }
 
             // Empty rooms can be removed immediately
             if (room.users.length == 0 ) {
-                return await Redis.del(roomID);
+                return await redisIO.del(roomID);
             }
 
             await redisIO.watch(room.users);
@@ -263,7 +258,7 @@ module.exports = class Rooms {
 
             // Remove users from the room
             for (let userID of room.users) {
-                let user = await Users.get(userID);
+                let user = await Users.get(redisIO, userID);
                 if (user) {
                     user.room = undefined;
                     multi.set(userID, JSON.stringify(user),
@@ -293,14 +288,14 @@ module.exports = class Rooms {
      * Complete the room object, getting the user and game state
      * The user can provide callbacks for success and error cases
      * */
-    static async complete(room) {
+    static async complete(redisIO, room) {
         if (!room) {
             throw 'Invalid room object';
         }
 
         let allPromises = [];
         for (let user of room.users) {
-            allPromises.push(Users.get(user));
+            allPromises.push(Users.get(redisIO, user));
         }
 
         await Promise.all(allPromises).then((values) => {
