@@ -12,8 +12,12 @@ module.exports = function(socket) {
         let user = await Users.get(userID);
         if (user) {
             if (user.room) {
-                Rooms.removeUser(userID, user.room, async (user, oldRoom, newRoom) => {
+                await Rooms.removeUser(userID, user.room, async (result) => {
                     let io = Server.getIO();
+
+                    let user = result["user"];
+                    let oldRoom = result["oldRoom"];
+
                     // Update user in socket.io if the transaction was successful
                     if (oldRoom) {
                         // Leave the socket before broadcasting his leave
@@ -21,7 +25,8 @@ module.exports = function(socket) {
                         console.log(`User ${user.id} left the room ${oldRoom.id}`);
                         if (oldRoom.users.length > 0) {
                             // Replace user IDs with complete user JSONs and send
-                            Rooms.complete(oldRoom, (room) => {
+                            await Rooms.complete(oldRoom)
+                            .then((room) => {
                                 io.to(room.id).emit('room', JSON.stringify(room));
                             }, (err) => {
                                 console.error(err);

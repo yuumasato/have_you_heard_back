@@ -18,7 +18,8 @@ module.exports = function(socket) {
         }
 
         // Provide callback to call when the creation is successful
-        Rooms.create(user, (room) => {
+        await Rooms.create(user)
+        .then(async (room) => {
             console.log(`new room ${room.id}`);
 
             // Join the socket before adding to receive back the broadcast with the
@@ -26,8 +27,12 @@ module.exports = function(socket) {
             socket.join(room.id);
 
             // Provide the callback to call when successful
-            Rooms.addUser(userID, room.id, (user, oldRoom, newRoom) => {
+            await Rooms.addUser(userID, room.id, async (result) => {
                 let io = Server.getIO();
+
+                let user = result["user"];
+                let oldRoom = result["oldRoom"];
+                let newRoom = result["newRoom"];
 
                 // Update user in socket.io if the transaction was successful
                 if (oldRoom) {
@@ -35,7 +40,8 @@ module.exports = function(socket) {
                     console.log(`user ${user.id} left the room ${oldRoom.id}`);
                     if (oldRoom.users.length > 0) {
                         // Replace user IDs with complete user JSONs and send
-                        Rooms.complete(oldRoom, (room) => {
+                        Rooms.complete(oldRoom)
+                        .then((room) => {
                             debug(`room:\n` + JSON.stringify(room, null, 2));
                             io.to(room.id).emit('room', JSON.stringify(room));
                         }, (err) => {
@@ -49,7 +55,8 @@ module.exports = function(socket) {
                     newRoom.language = user.language;
 
                     // Replace user IDs with complete user JSONs and send
-                    Rooms.complete(newRoom, (room) => {
+                    await Rooms.complete(newRoom)
+                    .then((room) => {
                         debug(`room:\n` + JSON.stringify(room, null, 2));
                         io.to(room.id).emit('room', JSON.stringify(room));
                         console.log(`user ${user.id} joined room ${room.id}`);
@@ -57,11 +64,13 @@ module.exports = function(socket) {
                         console.error(err);
                     });
                 }
-            }, (err) => {
+            }, async (err) => {
+                let io = Server.getIO();
                 // Rollback
                 console.error(`Failed to add user ${userID} to room ${room.id}: ` + err);
                 socket.leave(room.id);
-                Rooms.destroy(room.id);
+                await Rooms.destroy(room.id);
+                io.socketsLeave(room.id);
             });
         }, (err) => {
             console.error('Could not create new room: ' + err);
