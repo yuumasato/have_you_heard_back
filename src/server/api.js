@@ -11,6 +11,15 @@ module.exports = function(ex) {
     ex.get('/privacidade', (req, res) => {
         res.sendFile('privacy_policy.html', { root: 'public'});
     });
+    ex.get('/bootstrap/:file', (req, res) => {
+        res.sendFile(req.params['file'], { root: 'public/bootstrap'});
+    });
+    ex.get('/css/:file', (req, res) => {
+        res.sendFile(req.params['file'], { root: 'public/css'});
+    });
+    ex.get('/assets/fonts/Nunito-Regular.ttf', (req, res) => {
+        res.sendFile('Nunito-Regular.ttf', { root: 'public/assets/fonts/'});
+    });
 
     ex.get('/redis/set', async (req, res) => {
         key = req.query.key;
