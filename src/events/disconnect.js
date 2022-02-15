@@ -20,7 +20,7 @@ module.exports = function(socket) {
 
                     //TODO Update game state
 
-                    Games.removePlayer(userID, user.game, async (user, game) => {
+                    await Games.removePlayer(redisIO, userID, user.game, async (user, game) => {
                         let io = Server.getIO();
                         // If the user was in the game
                         if (game) {
@@ -33,7 +33,7 @@ module.exports = function(socket) {
                 }
 
                 if (user.room) {
-                    Rooms.removeUser(redisIO, userID, user.room, async (user, oldRoom, newRoom) => {
+                    await Rooms.removeUser(redisIO, userID, user.room, async (user, oldRoom, newRoom) => {
                         let io = Server.getIO();
                         // Update user in socket.io if the transaction was successful
                         if (oldRoom) {

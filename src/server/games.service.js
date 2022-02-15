@@ -139,7 +139,7 @@ module.exports = class Games {
 
         let toWatch = [userID, gameID];
         async function op() {
-            redisIO.watch(toWatch);
+            await redisIO.watch(toWatch);
 
             let game = await Games.get(redisIO, gameID);
             if (!game) {
