@@ -61,24 +61,21 @@ module.exports = class RedisService {
 
     static getSub() {
         if (RedisService.instance == null) {
-            RedisService.init(process.env.REDIS_URL ||
-                              {host: 'localhost', port: 6379});
+            throw 'Redis not initialized'
         }
         return RedisService.instance.sub;
     }
 
     static getPub() {
         if (RedisService.instance == null) {
-            RedisService.init(process.env.REDIS_URL ||
-                              {host: 'localhost', port: 6379});
+            throw 'Redis not initialized'
         }
         return RedisService.instance.pub;
     }
 
     static getIO(cb, errCB) {
         if (RedisService.instance == null) {
-            RedisService.init(process.env.REDIS_URL ||
-                              {host: 'localhost', port: 6379});
+            throw 'Redis not initialized'
         }
 
         async function op() {
