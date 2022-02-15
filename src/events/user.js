@@ -9,9 +9,9 @@ module.exports = function(socket) {
         //TODO for now, we ignore the provided ID and always create a new user
         console.log(`received user ID from ${socket.id}: ` + id);
 
-        await Redis.getIO(async (io) => {
+        await Redis.getIO(async (redisIO) => {
             // Create user
-            await Users.create(io, `user_${socket.id}`, (user) => {
+            await Users.create(redisIO, `user_${socket.id}`, async (user) => {
                 if (user) {
                     socket.emit('user id', `${user.id}`);
 
@@ -29,13 +29,14 @@ module.exports = function(socket) {
                 } else {
                     console.error('Could not create user');
                 }
-                // Unlock Redis IO connection
-                Redis.returnIO(io);
             }, (err) => {
                 console.error('Could not create user: ' + err);
             });
+
+            // Unlock Redis IO connection
+            Redis.returnIO(redisIO);
         }, (err) => {
-            console.error('Could not get Redis IO');
+            console.error('Could not get Redis IO: ' + err);
         });
     });
 };

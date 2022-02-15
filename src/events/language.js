@@ -16,15 +16,15 @@ module.exports = function(socket) {
         let userID = `user_${socket.id}`
         console.log(`(${userID}) set language to ${language}`);
 
-        await Redis.getIO(async (io) => {
-            await Users.setLanguage(io, `${userID}`, language, (user) => {
+        await Redis.getIO(async (redisIO) => {
+            await Users.setLanguage(redisIO, `${userID}`, language, (user) => {
                 console.log(`User ${user.name} set language as ${language}`);
             }).catch((msg) => {
                 console.error(`Failed to set user ${userID} language to ${language}: `
                               `${msg}`);
             });
 
-            Redis.returnIO(io);
+            Redis.returnIO(redisIO);
         }, (err) => {
             console.error('Could not get Redis IO: ' + err);
         });

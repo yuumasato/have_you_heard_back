@@ -54,10 +54,6 @@ module.exports = class Rooms {
     static swapRooms(redisIO, userID, oldRoomID, newRoomID, cb, errCB) {
         let toWatch = [userID];
 
-        if (oldRoomID == newRoomID) {
-            return 'ok';
-        }
-
         if (oldRoomID) {
             toWatch.push(oldRoomID);
         }
@@ -171,7 +167,6 @@ module.exports = class Rooms {
             }
 
             multi.set(userID, JSON.stringify(user), redis.print);
-
             return multi.exec()
             .then((replies) => {
                 if (replies) {
@@ -240,7 +235,7 @@ module.exports = class Rooms {
     static async destroy(redisIO, roomID, cb, errCB) {
 
         async function op () {
-            // User transaction to avoid conflicts
+            // Use transaction to avoid conflicts
             await redisIO.watch(roomID);
 
             let room = await Rooms.get(redisIO, roomID);
@@ -267,9 +262,8 @@ module.exports = class Rooms {
             }
 
             multi.del(roomID, redis.print);
-            multi.exec((err, replies) => {
-                if (err) reject(err);
-
+            return multi.exec()
+            .then((replies) => {
                 if (replies) {
                     replies.forEach(function(reply, index) {
                         console.log(`Destroy room transaction [${index}]: ${reply}`);

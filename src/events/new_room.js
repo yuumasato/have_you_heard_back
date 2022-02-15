@@ -16,6 +16,7 @@ module.exports = function(socket) {
             // Check if the user exists
             if (!user) {
                 console.error(`User ${userID} not found`);
+                Redis.returnIO(redisIO);
                 return;
             }
 
@@ -42,7 +43,7 @@ module.exports = function(socket) {
                         console.log(`user ${user.id} left the room ${oldRoom.id}`);
                         if (oldRoom.users.length > 0) {
                             // Replace user IDs with complete user JSONs and send
-                            Rooms.complete(redisIO, oldRoom)
+                            await Rooms.complete(redisIO, oldRoom)
                             .then((room) => {
                                 debug(`room:\n` + JSON.stringify(room, null, 2));
                                 io.to(room.id).emit('room', JSON.stringify(room));

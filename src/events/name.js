@@ -8,8 +8,8 @@ module.exports = function(socket) {
         let userID = `user_${socket.id}`
         console.log(`(${userID}) set name to ${name}`);
 
-        await Redis.getIO(async (io) => {
-            await Users.setName(io, `${userID}`, name, (user) => {
+        await Redis.getIO(async (redisIO) => {
+            await Users.setName(redisIO, `${userID}`, name, (user) => {
                 console.log('Set user name callback');
                 for (let r of socket.rooms) {
                     socket.to(r).emit('chat message', `User set name to ${user.name}`);
@@ -19,7 +19,7 @@ module.exports = function(socket) {
             });
 
             // Unlock Redis IO connection
-            Redis.returnIO(io);
+            Redis.returnIO(redisIO);
         }, (err) => {
             console.error('Could not get Redis IO: ' + err);
         });

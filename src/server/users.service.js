@@ -35,7 +35,7 @@ module.exports = class Users {
      * Create a new user and call the providede callback passing the created
      * user object.
      * */
-    static async create(redisIO, userID, cb, errCB) {
+    static create(redisIO, userID, cb, errCB) {
         // Create new object
         let user = new User(userID);
 
