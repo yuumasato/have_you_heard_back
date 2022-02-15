@@ -42,7 +42,7 @@ module.exports = class Users {
         async function op() {
             await redisIO.watch(userID);
 
-            let exist = await redisIO.exists(userID);
+            let exist = await Redis.exists(redisIO, userID);
 
             if (exist) {
                 throw new Error(`User ${userID} already exists`);
@@ -52,7 +52,7 @@ module.exports = class Users {
             let multi = redisIO.multi();
             await multi.set(userID, JSON.stringify(user), redis.print);
 
-            return multi.exec()
+            return Redis.multiExec(multi)
             .then((replies) => {
                 if (replies) {
                     replies.forEach(function (reply, index) {
@@ -71,7 +71,7 @@ module.exports = class Users {
 
     static async get(redisIO, userID) {
         try {
-            let userJSON = await redisIO.get(userID);
+            let userJSON = await Redis.get(redisIO, userID);
             if (userJSON) {
                 let parsed = JSON.parse(userJSON);
                 parsed.__proto__ = User.prototype;
@@ -106,7 +106,7 @@ module.exports = class Users {
             let multi = redisIO.multi();
             multi.set(userID, JSON.stringify(user), redis.print);
 
-            return multi.exec()
+            return Redis.multiExec(multi)
             .then((replies) => {
                 if (replies) {
                     replies.forEach(function(reply, index) {
@@ -147,7 +147,7 @@ module.exports = class Users {
             // Create transaction
             let multi = redisIO.multi();
             multi.set(userID, JSON.stringify(user), redis.print);
-            return multi.exec()
+            return Redis.multiExec(multi)
             .then((replies) => {
                 if (replies) {
                     replies.forEach(function(reply, index) {
@@ -166,7 +166,7 @@ module.exports = class Users {
 
     static async destroy(redisIO, userID) {
         try {
-            return await redisIO.del(userID);
+            return await Redis.del(redisIO, userID);
         } catch (e) {
             console.error(e);
         }

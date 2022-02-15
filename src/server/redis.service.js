@@ -1,7 +1,11 @@
 // Redis service
 
 // Stores the singleton redis connection for this instance
+const assert = require("assert");
+const { AbortError, AggregateError, ReplyError } = require("redis");
 const { createClient } = require('redis');
+const { promisify } = require("util");
+
 const { runWithRetries } = require('./common');
 const consts = require('./consts');
 const debug = require('debug')('transactions');
@@ -18,25 +22,24 @@ module.exports = class RedisService {
         if (RedisService.instance == null) {
             RedisService.instance = new RedisService();
 
-            // Pub/Sub for socket.io adapter
-            RedisService.instance.pub = createClient(url);
-            RedisService.instance.sub = RedisService.instance.pub.duplicate();
-
             // Connection used for normal IO
             for (let i = 0; i < consts.NUM_REDIS_IO; i++) {
-                RedisService.instance.io = createClient(url);
+                let c = createClient(url);
 
-                RedisService.instance.io.on('connect', function () {
+                c.on('connect', function () {
                     console.log('redis IO connected');
                 });
 
-                RedisService.instance.io.on('error', function (error) {
+                c.on('error', function (error) {
                     console.log(error);
                 });
-                RedisService.instance.io.connect();
 
-                RedisService.instance.pool.push(RedisService.instance.io);
+                RedisService.instance.pool.push(c);
             }
+
+            // Pub/Sub for socket.io adapter
+            RedisService.instance.pub = createClient(url);
+            RedisService.instance.sub = RedisService.instance.pub.duplicate();
 
             RedisService.instance.pub.on('connect', function () {
                 console.log('redis publisher connected');
@@ -53,24 +56,7 @@ module.exports = class RedisService {
             RedisService.instance.sub.on('error', function (error) {
                 console.log(error);
             });
-
-            RedisService.instance.pub.connect();
-            RedisService.instance.sub.connect();
         }
-    }
-
-    static getSub() {
-        if (RedisService.instance == null) {
-            throw 'Redis not initialized'
-        }
-        return RedisService.instance.sub;
-    }
-
-    static getPub() {
-        if (RedisService.instance == null) {
-            throw 'Redis not initialized'
-        }
-        return RedisService.instance.pub;
     }
 
     static getIO(cb, errCB) {
@@ -97,5 +83,48 @@ module.exports = class RedisService {
             RedisService.instance.pool.push(redisIO);
             debug('Returned IO');
         }
+    }
+    static getSub() {
+        if (RedisService.instance == null) {
+            throw 'Redis not initialized'
+        }
+        return RedisService.instance.sub;
+    }
+
+    static getPub() {
+        if (RedisService.instance == null) {
+            throw 'Redis not initialized'
+        }
+        return RedisService.instance.pub;
+    }
+
+    static async get(redisIO, key) {
+        const getAsync = promisify(redisIO.get).bind(redisIO);
+        return getAsync(key);
+    }
+
+    static async set(redisIO, key, value) {
+        const setAsync = promisify(redisIO.set).bind(redisIO);
+        return setAsync(key, value);
+    }
+
+    static async del(redisIO, key) {
+        const delAsync = promisify(redisIO.del).bind(redisIO);
+        return delAsync(key);
+    }
+
+    static async keys(redisIO, pattern) {
+        const keysAsync = promisify(redisIO.keys).bind(redisIO);
+        return keysAsync(pattern);
+    }
+
+    static async exists(redisIO, key) {
+        const existAsync = promisify(redisIO.exists).bind(redisIO);
+        return existAsync(key);
+    }
+
+    static async multiExec(multi) {
+        const multiExecAsync = promisify(multi.exec).bind(multi);
+        return multiExecAsync();
     }
 };

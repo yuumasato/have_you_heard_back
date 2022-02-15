@@ -34,7 +34,7 @@ module.exports = class Games {
 
     static async get(redisIO, gameID) {
         try {
-            let gameJSON = await redisIO.get(gameID);
+            let gameJSON = await Redis.get(redisIO, gameID);
             if (gameJSON) {
                 return JSON.parse(gameJSON);
             }
@@ -74,7 +74,7 @@ module.exports = class Games {
             // Use transaction to avoid conflicts
             await redisIO.watch(toWatch);
 
-            let exist = await redisIO.exists(gameID);
+            let exist = await Redis.exists(redisIO, gameID);
             if (exist) {
                 throw new Error(`Game ${gameID} already exists`);
             }
@@ -118,7 +118,7 @@ module.exports = class Games {
             }
 
             multi.set(gameID, JSON.stringify(game), redis.print);
-            return multi.exec()
+            return Redis.multiExec(multi)
                 .then((replies) => {
                     if (replies) {
                         replies.forEach(function (reply, index) {
@@ -195,7 +195,7 @@ module.exports = class Games {
                 game = undefined;
             }
 
-            return multi.exec()
+            return Redis.multiExec(multi)
             .then((replies) => {
                 if (replies) {
                     replies.forEach(function (reply, index) {
@@ -240,7 +240,7 @@ module.exports = class Games {
                 // Create transaction
                 let multi = redisIO.multi();
                 multi.set(game.id, JSON.stringify(game), redis.print);
-                return multi.exec()
+                return Redis.multiExec(multi)
                 .then((replies) => {
                     if (replies) {
                         replies.forEach(function (reply, index) {
@@ -352,7 +352,7 @@ module.exports = class Games {
 
             let multi = redisIO.multi();
             multi.set(game.id, JSON.stringify(game), redis.print);
-            return multi.exec()
+            return Redis.multiExec(multi)
             .then((replies) => {
                 if (replies) {
                     replies.forEach(function (reply, index) {
@@ -399,7 +399,7 @@ module.exports = class Games {
                 // Create transaction
                 let multi = redisIO.multi();
                 multi.set(game.id, JSON.stringify(game), redis.print);
-                return multi.exec()
+                return Redis.multiExec(multi)
                 .then((replies) => {
                     if (replies) {
                         replies.forEach(function (reply, index) {
@@ -444,7 +444,7 @@ module.exports = class Games {
                 // Create transaction
                 let multi = redisIO.multi();
                 multi.set(game.id, JSON.stringify(game), redis.print);
-                return multi.exec()
+                return Redis.multiExec(multi)
                 .then((replies) => {
                     if (replies) {
                         replies.forEach(function (reply, index) {
@@ -489,7 +489,7 @@ module.exports = class Games {
             }
 
             multi.del(game.id, redis.print);
-            return multi.exec()
+            return Redis.multiExec(multi)
             .then((replies) => {
                 if (replies) {
                     replies.forEach(function (reply, index) {

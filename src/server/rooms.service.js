@@ -34,7 +34,7 @@ module.exports = class Rooms {
 
     static async get(redisIO, roomID) {
         try {
-            let roomJSON = await redisIO.get(roomID);
+            let roomJSON = await Redis.get(redisIO, roomID);
             if (roomJSON) {
                 return JSON.parse(roomJSON);
             }
@@ -167,7 +167,7 @@ module.exports = class Rooms {
             }
 
             multi.set(userID, JSON.stringify(user), redis.print);
-            return multi.exec()
+            return Redis.multiExec(multi)
             .then((replies) => {
                 if (replies) {
                     replies.forEach(function(reply, index) {
@@ -197,7 +197,7 @@ module.exports = class Rooms {
             // Watch to prevent conflicts
             await redisIO.watch(roomID);
 
-            let exist = await redisIO.exists(roomID);
+            let exist = await Redis.exists(redisIO, roomID);
             if (exist) {
                 // Try again
                 throw ('Generated room ID already exists');
@@ -207,7 +207,7 @@ module.exports = class Rooms {
             let room = new Room(roomID, user.language);
             let multi = redisIO.multi();
             multi.set(roomID, JSON.stringify(room), redis.print);
-            return multi.exec()
+            return Redis.multiExec(multi)
             .then((replies) => {
                 if (replies) {
                     replies.forEach(function(reply, index) {
@@ -245,7 +245,7 @@ module.exports = class Rooms {
 
             // Empty rooms can be removed immediately
             if (room.users.length == 0 ) {
-                return await redisIO.del(roomID);
+                return await Redis.del(redisIO, roomID);
             }
 
             await redisIO.watch(room.users);
@@ -262,7 +262,7 @@ module.exports = class Rooms {
             }
 
             multi.del(roomID, redis.print);
-            return multi.exec()
+            return Redis.multiExec(multi)
             .then((replies) => {
                 if (replies) {
                     replies.forEach(function(reply, index) {
