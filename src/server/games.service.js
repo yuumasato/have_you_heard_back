@@ -482,25 +482,24 @@ module.exports = class Games {
                 allPromises.push(Users.get(redisIO, player.id));
             }
 
-            Promise.all(allPromises).then(async (values) => {
-                for (let user of values) {
-                    delete (user.game);
-                    multi.set(user.id, JSON.stringify(user), redis.print);
+            let values = await Promise.all(allPromises);
+            for (let user of values) {
+                delete (user.game);
+                multi.set(user.id, JSON.stringify(user), redis.print);
+            }
+
+            multi.del(game.id, redis.print);
+            return multi.exec()
+            .then((replies) => {
+                if (replies) {
+                    replies.forEach(function (reply, index) {
+                        console.log(`End game transaction [${index}]: ${reply}`);
+                    });
+
+                    return game;
+                } else {
+                    throw 'End game transaction conflict';
                 }
-
-                multi.del(game.id, redis.print);
-                return multi.exec()
-                .then((replies) => {
-                    if (replies) {
-                        replies.forEach(function (reply, index) {
-                            console.log(`End game transaction [${index}]: ${reply}`);
-                        });
-
-                        return game;
-                    } else {
-                        throw 'End game transaction conflict';
-                    }
-                });
             });
         }
 
