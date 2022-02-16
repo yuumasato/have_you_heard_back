@@ -10,7 +10,16 @@ const debug = require('debug')('have_you_heard');
 // Initialize event listener
 module.exports = function(socket) {
     socket.on('answer', async function answer_handler(answer) {
+
+        // Generate the answer to be registered immediately
+        let now = Date.now();
+        let answer_timestamp = {
+            time: now,
+            answer: answer
+        }
+
         let userID = `user_${socket.id}`;
+        debug(`Player ${userID} answered: ${answer}`);
         await Redis.getIO(async (redisIO) => {
             let user = await Users.get(redisIO, userID);
 
@@ -43,8 +52,7 @@ module.exports = function(socket) {
             }
 
             // Provide the callback to call when successful
-            await Games.answer(redisIO, user, game, answer, (retGame) => {
-                console.log(`Received answer ${answer}`);
+            await Games.answer(redisIO, userID, game.id, answer_timestamp, (retGame) => {
 
                 let allAnswered = true;
                 let answers = {};
@@ -64,7 +72,6 @@ module.exports = function(socket) {
                     let io = Server.getIO();
                     io.to(user.room).emit('round answers', JSON.stringify(answers));
                 } else {
-                    debug(`game:\n` + JSON.stringify(retGame, null, 2));
                     console.log(`Game (${game.id}): Waiting for other players to answer`);
                 }
             }, (err) => {

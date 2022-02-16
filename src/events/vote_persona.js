@@ -36,15 +36,8 @@ module.exports = function(socket) {
                 return;
             }
 
-            let game = await Games.get(redisIO, user.game);
-            if (!game) {
-                console.error(`Game ${user.game} not found`);
-                Redis.returnIO(redisIO);
-                return;
-            }
-
             // Provide the callback to call when successful
-            await Games.votePersona(redisIO, user, game, persona, async (retGame) => {
+            await Games.votePersona(redisIO, userID, user.game, persona, async (retGame) => {
                 console.log(`Received vote for ${persona}`);
 
                 let histogram = {};
@@ -77,20 +70,19 @@ module.exports = function(socket) {
                         }
                     }
 
-                    console.log(`Persona defined for game ${game.id}: ${winner}`);
+                    console.log(`Persona defined for game ${retGame.id}: ${winner}`);
                     debug(`game:\n` + JSON.stringify(retGame, null, 2));
                     let io = Server.getIO();
                     io.to(user.room).emit('persona', winner);
 
-                    await Games.nextRound(redisIO, retGame, undefined, (startedGame) => {
+                    await Games.nextRound(redisIO, retGame.id, undefined, (startedGame) => {
                         debug(`Game round initialized for game ${startedGame.id}`);
                         debug(`game:\n` + JSON.stringify(startedGame, null, 2));
                     }, (err) => {
                         console.err(`Failed to initialize new round for game ${startedGame.id}: ` + err);
                     });
                 } else {
-                    debug(`game:\n` + JSON.stringify(retGame, null, 2));
-                    console.log(`Game (${game.id}): Waiting for other players to vote`);
+                    console.log(`Game (${retGame.id}): Waiting for other players to vote`);
                 }
             }, (err) => {
                 console.error(`User ${userID} failed to vote for persona: ` + err);
@@ -99,7 +91,7 @@ module.exports = function(socket) {
             // Unlock Redis IO connection
             Redis.returnIO(redisIO);
         }, (err) => {
-            console.error('Could not get Redis IO');
+            console.error('Could not get Redis IO: ' + err);
         });
     });
 };

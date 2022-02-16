@@ -35,15 +35,8 @@ module.exports = function(socket) {
                 return;
             }
 
-            let game = await Games.get(redisIO, user.game);
-            if (!game) {
-                console.error(`Game ${user.game} not found`);
-                Redis.returnIO(redisIO);
-                return;
-            }
-
             // Provide the callback to call when successful
-            await Games.voteAnswer(redisIO, user, game, chosen, async (retGame) => {
+            await Games.voteAnswer(redisIO, user.id, user.game, chosen, async (retGame) => {
                 console.log(`Received vote for ${chosen}`);
 
                 let sumVotes = {};
@@ -118,34 +111,33 @@ module.exports = function(socket) {
                         winner = fastest_player.id
                     }
 
-                    console.log(`Round winner for game ${game.id}: ${winner}`);
-                    debug(`Round ${game.round} of ${game.numRounds}`);
-                    debug(`game:\n` + JSON.stringify(retGame, null, 2));
+                    console.log(`Round winner for game ${retGame.id}: ${winner}`);
+                    debug(`Round ${retGame.round} of ${retGame.numRounds}`);
                     let io = Server.getIO();
                     io.to(user.room).emit('round winner', winner);
 
-                    await Games.nextRound(redisIO, retGame, winner, async (startedGame) => {
+                    await Games.nextRound(redisIO, retGame.id, winner, async (startedGame) => {
                         if (startedGame.currentRound > startedGame.numRounds) {
                             // Finish game
                             if (!startedGame.match) {
                                 throw new Error(`Game ${startedGame.id} ended without winner`);
                             }
-                            io.to(user.room).emit('game winner', JSON.stringify(game.match));
-                            await Games.endGame(redisIO, startedGame, (game) => {
-                                console.log(`Game ${game.id} ended`);
+
+                            io.to(user.room).emit('game winner', JSON.stringify(startedGame.match));
+
+                            await Games.endGame(redisIO, startedGame.id, (endedGame) => {
+                                console.log(`Game ${endedGame.id} ended`);
                             }, (err) => {
-                                console.log(`Failed to end game ${game.id}: ` + err);
+                                console.log(`Failed to end game ${startedGame.id}: ` + err);
                             });
                         } else {
                             debug(`Game round initialized for game ${startedGame.id}`);
-                            debug(`game:\n` + JSON.stringify(startedGame, null, 2));
                         }
                     }, (err) => {
                         console.error(`Failed to initialize new round for game ${retGame.id}: ` + err);
                     });
                 } else {
-                    debug(`game:\n` + JSON.stringify(retGame, null, 2));
-                    console.log(`Game (${game.id}): Waiting for other players to vote`);
+                    console.log(`Game (${retGame.id}): Waiting for other players to vote`);
                 }
 
                 // Unlock Redis IO connection

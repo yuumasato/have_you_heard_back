@@ -118,18 +118,13 @@ module.exports = class Games {
             }
 
             multi.set(gameID, JSON.stringify(game), redis.print);
-            return Redis.multiExec(multi)
-                .then((replies) => {
-                    if (replies) {
-                        replies.forEach(function (reply, index) {
-                            console.log(`Game create transaction [${index}]: ${reply}`);
-                        });
-
-                        return game;
-                    } else {
-                        throw 'Create game transaction conflict';
-                    }
-                });
+            let replies = multi.exec();
+            if (replies) {
+                console.log('Game create transaction ok');
+                return game;
+            } else {
+                throw 'Create game transaction conflict';
+            }
         }
 
         return runWithRetries(op, cb, errCB);
@@ -137,18 +132,19 @@ module.exports = class Games {
 
     static async removePlayer(redisIO, userID, gameID, cb, errCB) {
 
-        let toWatch = [userID, gameID];
         async function op() {
             await redisIO.watch(toWatch);
 
-            let game = await Games.get(redisIO, gameID);
-            if (!game) {
-                throw new Error(`Game ${gameID} not found`);
-            }
+            let toWatch = [userID, gameID];
 
+            let game = await Games.get(redisIO, gameID);
             let user = await Users.get(redisIO, userID);
-            if (!user) {
-                throw new Error(`User ${userID} not found`);
+
+            if (user == undefined) {
+                throw `Invalid user ${userID}`;
+            }
+            if (game == undefined) {
+                throw `Invalid game ${gameID}`;
             }
 
             if (!user.game) {
@@ -195,19 +191,13 @@ module.exports = class Games {
                 game = undefined;
             }
 
-            return Redis.multiExec(multi)
-            .then((replies) => {
-                if (replies) {
-                    replies.forEach(function (reply, index) {
-                        console.log('Game remove player transaction: ' +
-                            reply.toString());
-                    });
-
-                    return game;
-                } else {
-                    throw 'Remove player transaction conflict';
-                }
-            });
+            let replies = multi.exec();
+            if (replies) {
+                console.log('Game remove player transaction ok')
+                return game;
+            } else {
+                throw 'Remove player transaction conflict';
+            }
         }
 
         return runWithRetries(op, cb, errCB);
@@ -216,21 +206,27 @@ module.exports = class Games {
     /**
      * Register the vote for a persona
      * */
-    static async votePersona(redisIO, user, game, persona, cb, errCB) {
-        // Create new object
-        let toWatch = [user.id, game.id];
+    static async votePersona(redisIO, userID, gameID, persona, cb, errCB) {
 
         async function op() {
+            let toWatch = [userID, gameID];
+
             // Watch to prevent conflicts
             redisIO.watch(toWatch);
+
+            let user = await Users.get(redisIO, userID);
+            let game = await Games.get(redisIO, gameID);
+
+            if (user == undefined) {
+                throw `Invalid user ${userID}`;
+            }
+            if (game == undefined) {
+                throw `Invalid game ${gameID}`;
+            }
+
             let updated = false;
             game.players.find((p) => {
                 if (p.id == user.id) {
-
-                    if (p.personaVote) {
-                        throw new Error(`User ${user.id} already voted for persona`);
-                    }
-
                     p.personaVote = persona;
                     updated = true;
                 }
@@ -240,18 +236,13 @@ module.exports = class Games {
                 // Create transaction
                 let multi = redisIO.multi();
                 multi.set(game.id, JSON.stringify(game), redis.print);
-                return Redis.multiExec(multi)
-                .then((replies) => {
-                    if (replies) {
-                        replies.forEach(function (reply, index) {
-                            console.log(`Vote persona transaction [${index}]: ${reply}`);
-                        });
-
-                        return game;
-                    } else {
-                        throw 'Vote persona transaction conflict';
-                    }
-                });
+                let replies = multi.exec();
+                if (replies) {
+                    console.log('Vote persona transaction ok');
+                    return game;
+                } else {
+                    throw 'Vote persona transaction conflict';
+                }
             }
         }
         return runWithRetries(op, cb, errCB);
@@ -315,9 +306,15 @@ module.exports = class Games {
     /**
      * Prepare new round
      * */
-    static async nextRound(redisIO, game, roundWinner, cb, errCB) {
+    static async nextRound(redisIO, gameID, roundWinner, cb, errCB) {
         async function op() {
-            redisIO.watch(game.id);
+            redisIO.watch(gameID);
+
+            let game = await Games.get(redisIO, gameID);
+
+            if (game == undefined) {
+                throw `Invalid game ${gameID}`;
+            }
 
             if (roundWinner) {
                 if (!game.roundWinners) {
@@ -352,67 +349,12 @@ module.exports = class Games {
 
             let multi = redisIO.multi();
             multi.set(game.id, JSON.stringify(game), redis.print);
-            return Redis.multiExec(multi)
-            .then((replies) => {
-                if (replies) {
-                    replies.forEach(function (reply, index) {
-                        console.log(`New round transaction [${index}]: ${reply}`);
-                    });
-
-                    return game;
-                } else {
-                    throw 'Next round transaction conflict';
-                }
-            });
-        }
-
-        return runWithRetries(op, cb, errCB);
-    }
-
-    /**
-     * Register the vote for an answer
-     * */
-    static async answer(redisIO, user, game, answer, cb, errCB) {
-        let toWatch = [user.id, game.id];
-
-        async function op() {
-            // Watch to prevent conflicts
-            redisIO.watch(toWatch)
-
-            let updated = false;
-            game.players.find((p) => {
-                if (p.id == user.id) {
-                    if (p.answer) {
-                        throw new Error(`User ${user.id} already answered`);
-                    }
-
-                    let now = Date.now();
-                    p.answer = {
-                        time: now - game.roundStart,
-                        answer: answer
-                    }
-                    updated = true;
-                }
-            });
-
-            if (updated) {
-                // Create transaction
-                let multi = redisIO.multi();
-                multi.set(game.id, JSON.stringify(game), redis.print);
-                return Redis.multiExec(multi)
-                .then((replies) => {
-                    if (replies) {
-                        replies.forEach(function (reply, index) {
-                            console.log(`Answer transaction [${index}]: ${reply}`);
-                        });
-
-                        return game;
-                    } else {
-                        throw 'Answer transaction conflict';
-                    }
-                });
+            let replies = multi.exec();
+            if (replies) {
+                console.log('New round transaction ok');
+                return game;
             } else {
-                throw new Error(`User ${user.id} not in game ${game.id}`);
+                throw 'Next round transaction conflict';
             }
         }
 
@@ -422,19 +364,77 @@ module.exports = class Games {
     /**
      * Register the vote for an answer
      * */
-    static async voteAnswer(redisIO, user, game, chosen, cb, errCB) {
-        let toWatch = [user.id, game.id];
+    static async answer(redisIO, userID, gameID, answer_timestamp, cb, errCB) {
 
         async function op() {
+            let toWatch = [userID, gameID];
+            // Watch to prevent conflicts
+            await redisIO.watch(toWatch);
+
+            let user = await Users.get(redisIO, userID);
+            let game = await Games.get(redisIO, gameID);
+
+            if (user == undefined) {
+                throw `Invalid user ${userID}`;
+            }
+            if (game == undefined) {
+                throw `Invalid game ${gameID}`;
+            }
+
+            let updated = false;
+            game.players.find((p) => {
+                if (p.id === user.id) {
+                    p.answer = answer_timestamp;
+
+                    // Calculate the interval
+                    p.answer['time'] = p.answer['time'] - game.roundStart;
+                    updated = true;
+                }
+            });
+
+            if (updated) {
+                // Create transaction
+                let multi = redisIO.multi();
+                multi.set(game.id, JSON.stringify(game), redis.print);
+
+                let replies = multi.exec();
+                if (replies) {
+                    console.log('Answer transaction ok');
+                    return game;
+                } else {
+                    throw 'Answer transaction conflict';
+                }
+            } else {
+                return game;
+            }
+        }
+
+        return runWithRetries(op, cb, errCB);
+    }
+
+    /**
+     * Register the vote for an answer
+     * */
+    static async voteAnswer(redisIO, userID, gameID, chosen, cb, errCB) {
+
+        async function op() {
+            let toWatch = [userID, gameID];
             // Watch to prevent conflicts
             redisIO.watch(toWatch)
+
+            let user = await Users.get(redisIO, userID);
+            let game = await Games.get(redisIO, gameID);
+
+            if (user == undefined) {
+                throw `Invalid user ${userID}`;
+            }
+            if (game == undefined) {
+                throw `Invalid game ${gameID}`;
+            }
+
             let updated = false;
             game.players.find((p) => {
                 if (p.id == user.id) {
-                    if (p.answerVote) {
-                        throw `User ${user.id} already voted for answer`;
-                    }
-
                     p.answerVote = chosen;
                     updated = true;
                 }
@@ -444,33 +444,35 @@ module.exports = class Games {
                 // Create transaction
                 let multi = redisIO.multi();
                 multi.set(game.id, JSON.stringify(game), redis.print);
-                return Redis.multiExec(multi)
-                .then((replies) => {
-                    if (replies) {
-                        replies.forEach(function (reply, index) {
-                            console.log(`Vote answer transaction [${index}]: ${reply}`);
-                        });
-
-                        return game;
-                    } else {
-                        throw 'Vote answer transaction conflict';
-                    }
-                });
+                let replies = multi.exec();
+                if (replies) {
+                    console.log('Vote answer transaction ok');
+                    return game;
+                } else {
+                    throw 'Vote answer transaction conflict';
+                }
             } else {
-                throw new Error(`User ${user.id} not in game ${game.id}`);
+                return game;
             }
         }
 
         return runWithRetries(op, cb, errCB);
     }
 
-    static async endGame(redisIO, game, cb, errCB) {
-        let toWatch = [game.id];
-        for (let p of game.players) {
-            toWatch.push(p.id);
-        }
-
+    static async endGame(redisIO, gameID, cb, errCB) {
         async function op() {
+
+            let game = await Games.get(redisIO, gameID);
+
+            if (game == undefined) {
+                throw `Invalid game ${gameID}`;
+            }
+
+            let toWatch = [game.id];
+            for (let p of game.players) {
+                toWatch.push(p.id);
+            }
+
             // Watch to prevent conflicts
             redisIO.watch(toWatch)
 
@@ -489,18 +491,13 @@ module.exports = class Games {
             }
 
             multi.del(game.id, redis.print);
-            return Redis.multiExec(multi)
-            .then((replies) => {
-                if (replies) {
-                    replies.forEach(function (reply, index) {
-                        console.log(`End game transaction [${index}]: ${reply}`);
-                    });
-
-                    return game;
-                } else {
-                    throw 'End game transaction conflict';
-                }
-            });
+            let replies = multi.exec();
+            if (replies) {
+                console.log('End game transaction ok');
+                return game;
+            } else {
+                throw 'End game transaction conflict';
+            }
         }
 
         return runWithRetries(op, cb, errCB);
