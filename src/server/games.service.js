@@ -6,6 +6,7 @@ const Game = require('./game.class');
 const Redis = require('./redis.service');
 const Server = require('./server.service');
 const Users = require('./users.service');
+const Rooms = require('./rooms.service');
 
 const { runWithRetries } = require('./common');
 const debug = require('debug')('have_you_heard');
@@ -67,12 +68,9 @@ module.exports = class Games {
         }
 
         async function op() {
+
             // Derive game ID from room ID
             let gameID = 'game_' + room.id.substring(5);
-            let toWatch = room.users.concat(gameID, room.id);
-
-            // Use transaction to avoid conflicts
-            await redisIO.watch(toWatch);
 
             let exist = await Redis.exists(redisIO, gameID);
             if (exist) {
@@ -104,7 +102,6 @@ module.exports = class Games {
 
             // Add only relevant information
             for (let u of users) {
-                await redisIO.watch(u.id);
                 game.players.push(
                     {
                         name: u.name,
@@ -118,13 +115,16 @@ module.exports = class Games {
             }
 
             multi.set(gameID, JSON.stringify(game), redis.print);
-            let replies = multi.exec();
-            if (replies) {
-                console.log('Game create transaction ok');
-                return game;
-            } else {
-                throw 'Create game transaction conflict';
-            }
+            return Redis.multiExec(multi)
+            .then((replies) => {
+                console.log('replies: ' + JSON.stringify(replies));
+                if (replies) {
+                    console.log('Game create transaction ok');
+                    return game;
+                } else {
+                    throw new Error('Create game transaction conflict');
+                }
+            });
         }
 
         return runWithRetries(op, cb, errCB);
@@ -133,9 +133,9 @@ module.exports = class Games {
     static async removePlayer(redisIO, userID, gameID, cb, errCB) {
 
         async function op() {
-            await redisIO.watch(toWatch);
-
             let toWatch = [userID, gameID];
+
+            await redisIO.watch(toWatch);
 
             let game = await Games.get(redisIO, gameID);
             let user = await Users.get(redisIO, userID);
@@ -191,13 +191,15 @@ module.exports = class Games {
                 game = undefined;
             }
 
-            let replies = multi.exec();
-            if (replies) {
-                console.log('Game remove player transaction ok')
-                return game;
-            } else {
-                throw 'Remove player transaction conflict';
-            }
+            return Redis.multiExec(multi)
+            .then((replies) => {
+                if (replies) {
+                    console.log('Game remove player transaction ok')
+                    return game;
+                } else {
+                    throw 'Remove player transaction conflict';
+                }
+            });
         }
 
         return runWithRetries(op, cb, errCB);
@@ -236,13 +238,15 @@ module.exports = class Games {
                 // Create transaction
                 let multi = redisIO.multi();
                 multi.set(game.id, JSON.stringify(game), redis.print);
-                let replies = multi.exec();
-                if (replies) {
-                    console.log('Vote persona transaction ok');
-                    return game;
-                } else {
-                    throw 'Vote persona transaction conflict';
-                }
+                return Redis.multiExec(multi)
+                .then((replies) => {
+                    if (replies) {
+                        console.log('Vote persona transaction ok');
+                        return game;
+                    } else {
+                        throw 'Vote persona transaction conflict';
+                    }
+                });
             }
         }
         return runWithRetries(op, cb, errCB);
@@ -349,13 +353,15 @@ module.exports = class Games {
 
             let multi = redisIO.multi();
             multi.set(game.id, JSON.stringify(game), redis.print);
-            let replies = multi.exec();
-            if (replies) {
-                console.log('New round transaction ok');
-                return game;
-            } else {
-                throw 'Next round transaction conflict';
-            }
+            return Redis.multiExec(multi)
+            .then((replies) => {
+                if (replies) {
+                    console.log('New round transaction ok');
+                    return game;
+                } else {
+                    throw 'Next round transaction conflict';
+                }
+            });
         }
 
         return runWithRetries(op, cb, errCB);
@@ -397,13 +403,15 @@ module.exports = class Games {
                 let multi = redisIO.multi();
                 multi.set(game.id, JSON.stringify(game), redis.print);
 
-                let replies = multi.exec();
-                if (replies) {
-                    console.log('Answer transaction ok');
-                    return game;
-                } else {
-                    throw 'Answer transaction conflict';
-                }
+                return Redis.multiExec(multi)
+                    .then((replies) => {
+                    if (replies) {
+                        console.log('Answer transaction ok');
+                        return game;
+                    } else {
+                        throw 'Answer transaction conflict';
+                    }
+                });
             } else {
                 return game;
             }
@@ -425,16 +433,17 @@ module.exports = class Games {
             let user = await Users.get(redisIO, userID);
             let game = await Games.get(redisIO, gameID);
 
-            if (user == undefined) {
+            if (user === undefined) {
                 throw `Invalid user ${userID}`;
             }
-            if (game == undefined) {
+            if (game === undefined) {
                 throw `Invalid game ${gameID}`;
             }
 
             let updated = false;
             game.players.find((p) => {
-                if (p.id == user.id) {
+                if (p.id === user.id) {
+                    debug(`Found user id ${user.id}`);
                     p.answerVote = chosen;
                     updated = true;
                 }
@@ -444,13 +453,16 @@ module.exports = class Games {
                 // Create transaction
                 let multi = redisIO.multi();
                 multi.set(game.id, JSON.stringify(game), redis.print);
-                let replies = multi.exec();
-                if (replies) {
-                    console.log('Vote answer transaction ok');
-                    return game;
-                } else {
-                    throw 'Vote answer transaction conflict';
-                }
+                return Redis.multiExec(multi)
+                .then((replies) => {
+                    console.log("replies = " + JSON.stringify(replies));
+                    if (replies) {
+                        console.log('Vote answer transaction ok');
+                        return game;
+                    } else {
+                        throw 'Vote answer transaction conflict';
+                    }
+                });
             } else {
                 return game;
             }
@@ -491,13 +503,15 @@ module.exports = class Games {
             }
 
             multi.del(game.id, redis.print);
-            let replies = multi.exec();
-            if (replies) {
-                console.log('End game transaction ok');
-                return game;
-            } else {
-                throw 'End game transaction conflict';
-            }
+            return Redis.multiExec(multi)
+            .then((replies) => {
+                if (replies) {
+                    console.log('End game transaction ok');
+                    return game;
+                } else {
+                    throw 'End game transaction conflict';
+                }
+            });
         }
 
         return runWithRetries(op, cb, errCB);

@@ -35,9 +35,10 @@ module.exports = function(socket) {
                 return;
             }
 
+            console.log(`Received vote for ${chosen} from ${user.name}`);
             // Provide the callback to call when successful
             await Games.voteAnswer(redisIO, user.id, user.game, chosen, async (retGame) => {
-                console.log(`Received vote for ${chosen}`);
+                console.log(`Registered vote for ${chosen} from ${user.name}`);
 
                 let sumVotes = {};
                 let allVoted = true;
