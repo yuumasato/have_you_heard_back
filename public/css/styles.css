@@ -12,6 +12,7 @@ html {
 body {
     background: #30333A;
     font-family: 'Nunito';
+    min-width: 320px;
 }
 
 p, h1, h2, h3, h4, h5, h6 {
@@ -146,9 +147,50 @@ p {
     width: 100%;
 }
 
-.form input,  textarea, small{
-    width: 80%;
-    margin-bottom: 20px;
+.form input,  .form textarea, .form small{
+    width: 100%;
+}
+
+.form input {
+    margin-bottom: 25px;
+}
+
+.form textarea {
+    margin-top: 10px;
+}
+
+.form input, .form textarea {
+    background: none;
+    border-radius: 10px;
+    border: solid 2px #464C50;
+    resize: none;
+    padding: 10px;
+    color: #FFFFFF;
+}
+
+.form input:focus, .form textarea:focus {
+    outline: none;
+    color: #FFFFFF;
+}
+
+.form button {
+    text-decoration: none;
+}
+
+.form .input-example {
+    color: #AAB3BC;
+}
+
+.form .input-warning {
+    color: #F5364C;
+    margin: 20px 0;
+}
+
+.form small {
+    font-style: normal;
+    font-weight: normal;
+    line-height: 24px;
+    font-size: 14px;
 }
 
 .form {
@@ -163,13 +205,55 @@ p {
 }
 
 .form button {
-    width: 120px;
+    max-width: 245px;
+    background: #C64875;
+    border-radius: 20px;
+    padding: 10px 20px;
+    border: none;
+    color: #FFFFFF;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 16px;
+    line-height: 24px;
+}
+
+.form button:focus {
+    outline: none;
 }
 
 .news-example {
     width: 90%;
     margin: 0 auto;
     padding: 20px;
+}
+
+.bubble {
+position: relative;
+width: 270px;
+min-height: 175px;
+padding: 0px;
+background: #464C50;
+-webkit-border-radius: 36px;
+-moz-border-radius: 36px;
+border-radius: 36px;
+display: flex;
+flex-direction: column;
+/* align-items: center; */
+justify-content: center;
+padding: 16px;
+}
+
+.bubble:after {
+content: '';
+position: absolute;
+border-style: solid;
+border-width: 25px 25px 0;
+border-color: #464C50 transparent;
+display: block;
+width: 0;
+z-index: 1;
+bottom: -25px;
+left: 170px;
 }
 
 @media only screen and (min-width: 768px) {
@@ -214,6 +298,10 @@ p {
 
     .nav-item {
         padding: 0 10px 0 10px;
+    }
+
+    .form input,  .form textarea, .form small{
+        width: 80%;
     }
 }
 

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" charset="UTF-8">
+        <title>Política de Privacidade</title>
+        <Link href= "bootstrap/bootstrap.min.css" rel="stylesheet">
+        <Link href= "css/styles.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="nav-container">
+            <nav class="navbar navbar-expand-lg">
+                <a class="navbar-brand" href="/">HAVE YOU HEARD?</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="collapsibleNavbar">
+                    <ul class="navbar-nav">
+                        <li class="nav-item"><a class="nav-link" href="#">Sobre nós</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#">Como jogar</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#">Colaborar</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#">Política de Privacidade</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+
+        <div class="sub-nav"></div>
+        <div class="main-container">
+            <div class="form">
+                <form class="" action="#" method="post">
+                    <h1>Link da notícia</h1>
+                    <input type="text" name="" value="" placeholder="Ex. https://www.linknoticia.com.br">
+                    <h2>Escreva a notícia e marque entre (parenteses) o que não irá aparecer</h2>
+                    <small class="input-example">Ex: Have you heard é (um jogo) sobre  mal entendidos.</small>
+                    <textarea id="input" onkeyup="buildPreview()" name="name" rows="8" cols="80" placeholder="Insira aqui a notícia"></textarea>
+                    <small class="input-warning">Coloque o que não irá aparecer entre parênteses/ máx XX caracteres</small>
+                    <button type="submit" name="button">Enviar notícia</button>
+                </form>
+            </div>
+            <div class="news-example">
+                <h2>Visualizar notícia</h2>
+                <div class="bubble">
+                    <h3>Você ouviu que...</h3>
+                    <p id="bubble-content">Have you Heard é um _______ sobre mal entedidos.</p>
+                </div>
+            </div>
+        </div>
+
+        <script src= "https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script src= "bootstrap/bootstrap.min.js"></script>
+        <script type="text/javascript">
+
+
+            function buildPreview() {
+                var input = document.getElementById("input").value;
+                document.getElementById("bubble-content").innerText = input;
+            }
+
+        </script>
+    </body>
+</html>
