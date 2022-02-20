@@ -33,15 +33,19 @@ module.exports = function(socket) {
                 }
 
                 if (user.room) {
-                    await Rooms.removeUser(redisIO, userID, user.room, async (user, oldRoom, newRoom) => {
+                    await Rooms.removeUser(redisIO, userID, user.room, async (result) => {
                         let io = Server.getIO();
+                        let user = result["user"];
+                        let oldRoom = result["oldRoom"];
                         // Update user in socket.io if the transaction was successful
+
                         if (oldRoom) {
                             socket.leave(oldRoom.id);
                             console.log(`user ${user.id} left the room ${oldRoom.id}`);
                             if (oldRoom.users.length > 0) {
                                 // Replace user IDs with complete user JSONs and send
-                                Rooms.complete(redisIO, oldRoom, (room) => {
+                                Rooms.complete(redisIO, oldRoom)
+                                .then((room)=> {
                                     debug(`room:\n` + JSON.stringify(room, null, 2));
                                     io.to(room.id).emit('room', JSON.stringify(room));
                                 }, (err) => {
