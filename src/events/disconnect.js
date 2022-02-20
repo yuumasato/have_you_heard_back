@@ -20,6 +20,7 @@ module.exports = function(socket) {
 
                     //TODO Update game state
 
+                    user.disconnectionGameID = user.game;
                     await Games.removePlayer(redisIO, userID, user.game, async (game) => {
                         let io = Server.getIO();
                         // If the user was in the game
@@ -33,11 +34,16 @@ module.exports = function(socket) {
                 }
 
                 if (user.room) {
+                    user.disconnectionRoomID = user.room;
                     await Rooms.removeUser(redisIO, userID, user.room, async (result) => {
                         let io = Server.getIO();
                         let user = result["user"];
                         let oldRoom = result["oldRoom"];
                         // Update user in socket.io if the transaction was successful
+
+                        console.log(`user ${user}`);
+                        console.log(`oldRoom ${oldRoom}`);
+                        console.log(`oldRoom ${oldRoom.users.length}`);
 
                         if (oldRoom) {
                             socket.leave(oldRoom.id);
@@ -46,7 +52,7 @@ module.exports = function(socket) {
                                 // Replace user IDs with complete user JSONs and send
                                 Rooms.complete(redisIO, oldRoom)
                                 .then((room)=> {
-                                    debug(`room:\n` + JSON.stringify(room, null, 2));
+                                    debug(`room:\n` + JSON.stringify(room, null, 3));
                                     io.to(room.id).emit('room', JSON.stringify(room));
                                 }, (err) => {
                                     console.error(err);
@@ -54,15 +60,16 @@ module.exports = function(socket) {
                             }
                         }
 
-                        await Users.destroy(redisIO, userID);
-                        console.log(`User ${user.id} was deleted`);
                     }, (err) => {
                         console.error(`Could not remove user ${userID} from room ${user.room}: ` + err);
                     });
-                } else {
-                    await Users.destroy(redisIO, userID);
-                    console.log(`User ${user.id} was deleted`);
                 }
+                // Every disconnect is a potential network error, let's not delete the user immediately
+                await Users.delayedDestroy(redisIO, userID, async (user) => {
+                    console.log(`user ${user.id} disconnected`);
+                }, (err) => {
+                    console.error(`Could not set disconnect expiry for user ${userID}: ` + err);
+                });
             }
 
             Redis.returnIO(redisIO);

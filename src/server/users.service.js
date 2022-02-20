@@ -164,12 +164,33 @@ module.exports = class Users {
         return runWithRetries(op, cb, errCB);
     }
 
-    static async destroy(redisIO, userID) {
-        try {
-            return await Redis.del(redisIO, userID);
-        } catch (e) {
-            console.error(e);
+    static async delayedDestroy(redisIO, userID, cb, errCB) {
+        async function op() {
+            await redisIO.watch(userID);
+
+            let user = await Users.get(redisIO, userID);
+
+            if (user == undefined) {
+                throw `Invalid user ${userID}`;
+            }
+
+            // Create transaction
+            let multi = redisIO.multi();
+            multi.expire(userID, 300, redis.print);
+            console.log(`User ${userID} will be deleted`);
+
+            return Redis.multiExec(multi)
+            .then((replies) => {
+                if (replies) {
+                    console.log('User remove player transaction ok')
+                    return user;
+                } else {
+                    throw 'User player transaction conflict';
+                }
+            });
         }
+
+        return runWithRetries(op, cb, errCB);
     }
 
 };

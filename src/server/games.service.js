@@ -205,6 +205,88 @@ module.exports = class Games {
         return runWithRetries(op, cb, errCB);
     }
 
+    static async swapPlayers(redisIO, gameID, removeUserID, addUserID, cb, errCB) {
+
+        async function op() {
+            let toWatch = [addUserID, gameID];
+
+            await redisIO.watch(toWatch);
+
+            let game = await Games.get(redisIO, gameID);
+            //let removeUser = await Users.get(redisIO, removeUserID);
+            let addUser = await Users.get(redisIO, addUserID);
+
+            //if (removeUser == undefined) {
+            //    throw `Invalid user to remove ${removeUserID}`;
+            //}
+            if (addUser == undefined) {
+                throw `Invalid user to add ${addUserID}`;
+            }
+            if (game == undefined) {
+                throw `Invalid game ${gameID}`;
+            }
+
+            //if (!removeUser.game) {
+                // This is not a critical error, as the user might have been removed by the disconnect event,
+                // and we would remove him anyway
+            //    throw `User ${removeUserID} was not in a game`;
+            //}
+
+            //if (removeUser.game != gameID) {
+                // This is not a critical error, as the player might have been removed by the disconnect event,
+                // and we would remove him anyway
+            //    throw `User ${removeUserID} was not in game ${gameID}`;
+            //}
+
+            if (addUser.game) {
+                throw new Error(`User ${addUserID} already is in a game`);
+            }
+
+            let found = false;
+            // Remove the player from the game only if the player was in
+            // the game
+            game.players.find((p) => {
+                if (p.id === removeUserID) {
+                    found = true;
+                }
+            });
+
+            // Update game info in added user
+            addUser.game = game.id
+
+            // Create transaction
+            let multi = redisIO.multi();
+            multi.set(addUserID, JSON.stringify(addUser), redis.print);
+
+            // If the player was in the game, remove from the game
+            if (found) {
+                game.players = game.players.filter((p) => {
+                    return p.id !== removeUserID;
+                });
+            }
+
+            game.players.push(
+                {
+                    name: addUser.name,
+                    id: addUser.id,
+                }
+            );
+
+            multi.set(gameID, JSON.stringify(game), redis.print);
+
+            return Redis.multiExec(multi)
+            .then((replies) => {
+                if (replies) {
+                    console.log('Game swap player transaction ok')
+                    return game;
+                } else {
+                    throw 'Swap player transaction conflict';
+                }
+            });
+        }
+
+        return runWithRetries(op, cb, errCB);
+    }
     /**
      * Register the vote for a persona
      * */

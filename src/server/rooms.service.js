@@ -313,4 +313,68 @@ module.exports = class Rooms {
 
         return room;
     }
+
+    /**
+     * Swap one user for another.
+     */
+    static swapUsers(redisIO, roomID, removeUserID, addUserID, cb, errCB) {
+        let toWatch = [roomID, removeUserID, addUserID];
+
+        async function op() {
+            await redisIO.watch(toWatch);
+
+            let removeUser = await Users.get(redisIO, removeUserID);
+            if (!removeUser) {
+                throw new Error(`Original user ${removeUserID} was already deleted`);
+            }
+            let addUser = await Users.get(redisIO, addUserID);
+            if (!addUser) {
+                throw new Error(`User ${addUserID} not found`);
+            }
+
+            let room = await Rooms.get(redisIO, roomID);
+            if (room) {
+                await Rooms.removeUser(redisIO, removeUserID, roomID, async (result) => {
+                    let io = Server.getIO();
+
+                    let user = result["user"];
+                    let oldRoom = result["oldRoom"];
+                    if (oldRoom) {
+                        console.log(`user ${user.id} left the room ${oldRoom.id}`);
+                        if (oldRoom.users.length > 0) {
+                            // Replace user IDs with complete user JSONs and send
+                            await Rooms.complete(redisIO, oldRoom)
+                                .then((room) => {
+                                    io.to(room.id).emit('room', JSON.stringify(room));
+                                }, (err) => {
+                                    console.error(err);
+                                });
+                        }
+                    }
+                });
+                await Rooms.addUser(redisIO, addUserID, roomID, async (result) => {
+                    let io = Server.getIO();
+
+                    let user = result["user"];
+                    let newRoom = result["newRoom"];
+
+                    if (newRoom) {
+                        // Replace user IDs with complete user JSONs and send
+                        await Rooms.complete(redisIO, newRoom)
+                            .then((room) => {
+                                io.to(room.id).emit('room', JSON.stringify(room));
+                                console.log(`user ${user.id} joined room ${room.id}`);
+                            }, (err) => {
+                                console.error(err);
+                            });
+                    }
+                });
+            } else {
+                console.log(`Room ${roomID} ceased to exist while swapping ${removeUserID } for ${addUserID}`);
+            }
+            return room;
+        }
+
+        return runWithRetries(op, cb, errCB);
+    }
 };
