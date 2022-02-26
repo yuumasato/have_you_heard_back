@@ -7,6 +7,25 @@ const Redis = require('../server/redis.service');
 
 const debug = require('debug')('have_you_heard');
 
+// TODO - modularize personas and multiplex with other languages
+const pt_personas = [
+    'Antivacina',
+    'Bonosaro',
+    'Eron Must',
+    'Lulo',
+    'Salvio',
+    'Tia do Zap',
+    'Tump',
+    'Vegana'
+]
+
+//The maximum is exclusive and the minimum is inclusive
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min) + min);
+}
+
 // Initialize event listener
 module.exports = function(socket) {
     socket.on('vote persona', async function vote_persona_handler(persona) {
@@ -68,6 +87,11 @@ module.exports = function(socket) {
                                 winner = k;
                             }
                         }
+                    }
+                    if (winner === 'Aleatório') {
+                        let random = getRandomInt(0, 8);
+                        console.log(`Random int ${random}`);
+                        winner = pt_personas[random];
                     }
 
                     console.log(`Persona defined for game ${retGame.id}: ${winner}`);
