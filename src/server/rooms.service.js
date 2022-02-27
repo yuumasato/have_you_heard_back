@@ -120,6 +120,9 @@ module.exports = class Rooms {
                     if (oldRoom.users.length > 0) {
                         oldRoom.ownerID = oldRoom.users[0];
                         console.log(`User ${oldRoom.owner} is now the owner`);
+                    } else if (oldRoom.users.length == 0) {
+                        oldRoom.ownerID = undefined;
+                        console.log(`Room ${oldRoom.id} is unowned`);
                     }
                 }
 
