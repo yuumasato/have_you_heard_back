@@ -1,0 +1,76 @@
+name: test
+
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+
+  build_image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./container/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.actor }}/have_you_heard:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  test:
+    needs: build_image
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.actor }}/have_you_heard:latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        npm install
+
+    - name: Start Redis
+      run: |
+        redis-server &
+        sleep 2
+
+    - name: Start Server
+      shell: bash
+      env:
+        NODE_ENV: ${{ secrets.NODE_ENV }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: |
+        touch .env
+        echo NODE_ENV="$NODE_ENV" >> .env
+        echo DATABASE_URL="$DATABASE_URL" >> .env
+        DEBUG=have_you_heard node src &
+        sleep 2
+
+    - name: Run tests
+      run: |
+        pushd test
+        echo "Run sanity random game"
+        python3 auto_player.py -v -s http://localhost:3000 -r
+        echo "Run test games"
+        python3 auto_player.py -v -s http://localhost:3000 -t
+        popd
