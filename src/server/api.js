@@ -5,9 +5,40 @@ module.exports = function(ex) {
 
     // server.ex is the express instance
 
-    ex.get('/', (req, res) => {
+    ex.get('/test', (req, res) => {
         res.sendFile('index.html', { root: 'public'});
     });
+    ex.get('/', (req, res) => {
+        res.sendFile('index.html', { root: 'public/app'});
+    });
+    ex.get('/public/app/', (req, res) => {
+        res.sendFile('index.html', { root: 'public/app'});
+    });
+    ex.get('/public/app/:file', (req, res) => {
+        res.sendFile(req.params['file'], { root: 'public/app'});
+    });
+    ex.get('/public/app/assets/:file', (req, res) => {
+        res.sendFile(req.params['file'], { root: 'public/app/assets'});
+    });
+    ex.get('/public/app/assets/assets/:file', (req, res) => {
+        res.sendFile(req.params['file'], { root: 'public/app/assets/assets'});
+    });
+    ex.get('/public/app/assets/assets/fonts/:file', (req, res) => {
+        res.sendFile(req.params['file'], { root: 'public/app/assets/assets/fonts'});
+    });
+    ex.get('/public/app/assets/assets/images/:file', (req, res) => {
+        res.sendFile(req.params['file'], { root: 'public/app/assets/assets/images'});
+    });
+    ex.get('/public/app/assets/assets/images/players/:file', (req, res) => {
+        res.sendFile(req.params['file'], { root: 'public/app/assets/assets/images/players'});
+    });
+    ex.get('/public/app/assets/fonts/:file', (req, res) => {
+        res.sendFile(req.params['file'], { root: 'public/app/assets/fonts'});
+    });
+    ex.get('/public/app/icons/:file', (req, res) => {
+        res.sendFile(req.params['file'], { root: 'public/app/icons'});
+    });
+
     ex.get('/privacidade', (req, res) => {
         res.sendFile('privacy_policy.html', { root: 'public'});
     });
