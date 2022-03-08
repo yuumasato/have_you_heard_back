@@ -1,0 +1,3 @@
+[submodule "have_you_heard"]
+	path = have_you_heard
+	url = https://github.com/yuumasato/have_you_heard.git
