@@ -1,0 +1,98 @@
+- name: 'game1'
+  players:
+  - name: 'player 0'
+    persona: 'Lulo'
+    rounds:
+    - answer: 'p0 answer 1'
+      vote: 'player 1'
+    - answer: 'p0 answer 2'
+      vote: 'player 1'
+    - answer: 'p0 answer 3'
+      vote: 'player 1'
+  - name: 'player 1'
+    persona: 'Lulo'
+    rounds:
+    - answer: 'p1 answer 1'
+      vote: 'player 0'
+    - answer: 'p1 answer 2'
+      vote: 'player 0'
+    - answer: 'p1 answer 3'
+      vote: 'player 0'
+  - name: 'player 2'
+    persona: 'Lulo'
+    rounds:
+    - answer: 'p2 answer 1'
+      vote: 'player 0'
+    - answer: 'p2 answer 2'
+      vote: 'player 0'
+    - answer: 'p2 answer 3'
+      vote: 'player 0'
+  - name: 'player 3'
+    persona: 'Lulo'
+    rounds:
+    - answer: 'p3 answer 1'
+      vote: 'player 0'
+    - answer: 'p3 answer 2'
+      vote: 'player 0'
+    - answer: 'p3 answer 3'
+      vote: 'player 0'
+  - name: 'player 4'
+    persona: 'Lulo'
+    rounds:
+    - answer: 'p4 answer 1'
+      vote: 'player 0'
+    - answer: 'p4 answer 2'
+      vote: 'player 0'
+    - answer: 'p4 answer 3'
+      vote: 'player 0'
+  result:
+    rounds:
+      - winner: 'player 0'
+      - winner: 'player 0'
+      - winner: 'player 0'
+    game_winner: 'player 0'
+
+- name: 'game2'
+  players:
+  - name: 'player 0'
+    persona: 'Eron Must'
+    rounds:
+    - answer: 'p0 answer 1'
+      answer_delay: 1
+      vote: 'player 0'
+    - answer: 'p0 answer 2'
+      answer_delay: 2
+      vote: 'player 1'
+    - answer: 'p0 answer 3'
+      answer_delay: 2
+      vote: 'player 2'
+  - name: 'player 1'
+    persona: 'Eron Must'
+    rounds:
+    - answer: 'p1 answer 1'
+      answer_delay: 2
+      vote: 'player 0'
+    - answer: 'p1 answer 2'
+      answer_delay: 1
+      vote: 'player 1'
+    - answer: 'p1 answer 3'
+      answer_delay: 2
+      vote: 'player 2'
+  - name: 'player 2'
+    persona: 'Eron Must'
+    rounds:
+    - answer: 'p3 answer 1'
+      answer_delay: 1
+      vote: 'player 0'
+    - answer: 'p3 answer 2'
+      answer_delay: 1
+      vote: 'player 1'
+    - answer: 'p3 answer 3'
+      vote: 'player 2'
+  result:
+    rounds:
+      - winner: 'player 0'
+      - winner: 'player 1'
+      - winner: 'player 2'
+    game_winner: 'player 2'
+
