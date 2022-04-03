@@ -40,7 +40,7 @@ if (cluster.isMaster) {
     console.log(`Worker ${process.pid} started`);
 
     const express = require('express');
-    const ex = express()
+    const ex = express();
     const httpServer = http.createServer(ex);
     const io = require("socket.io")(httpServer);
     const { createAdapter } = require('@socket.io/redis-adapter');

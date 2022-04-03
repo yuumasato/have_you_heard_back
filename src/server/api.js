@@ -1,56 +1,28 @@
 // Server rest api
 const Redis = require('./redis.service');
+const express = require('express');
 
 module.exports = function(ex) {
 
     // server.ex is the express instance
 
-    ex.get('/test', (req, res) => {
-        res.sendFile('index.html', { root: 'public'});
-    });
+    // Redirect to the app initial page
     ex.get('/', (req, res) => {
-        res.sendFile('index.html', { root: 'public/app'});
-    });
-    ex.get('/public/app/', (req, res) => {
-        res.sendFile('index.html', { root: 'public/app'});
-    });
-    ex.get('/public/app/:file', (req, res) => {
-        res.sendFile(req.params['file'], { root: 'public/app'});
-    });
-    ex.get('/public/app/assets/:file', (req, res) => {
-        res.sendFile(req.params['file'], { root: 'public/app/assets'});
-    });
-    ex.get('/public/app/assets/assets/:file', (req, res) => {
-        res.sendFile(req.params['file'], { root: 'public/app/assets/assets'});
-    });
-    ex.get('/public/app/assets/assets/fonts/:file', (req, res) => {
-        res.sendFile(req.params['file'], { root: 'public/app/assets/assets/fonts'});
-    });
-    ex.get('/public/app/assets/assets/images/:file', (req, res) => {
-        res.sendFile(req.params['file'], { root: 'public/app/assets/assets/images'});
-    });
-    ex.get('/public/app/assets/assets/images/players/:file', (req, res) => {
-        res.sendFile(req.params['file'], { root: 'public/app/assets/assets/images/players'});
-    });
-    ex.get('/public/app/assets/fonts/:file', (req, res) => {
-        res.sendFile(req.params['file'], { root: 'public/app/assets/fonts'});
-    });
-    ex.get('/public/app/icons/:file', (req, res) => {
-        res.sendFile(req.params['file'], { root: 'public/app/icons'});
+        res.sendFile('index.html', { root: 'app'});
     });
 
+    // Serve files on app
+    ex.use('/app/', express.static('app'));
+
+    ex.get('/test', (req, res) => {
+        res.sendFile('test.html', { root: 'public'});
+    });
     ex.get('/privacidade', (req, res) => {
         res.sendFile('privacy_policy.html', { root: 'public'});
     });
-    ex.get('/bootstrap/:file', (req, res) => {
-        res.sendFile(req.params['file'], { root: 'public/bootstrap'});
-    });
-    ex.get('/css/:file', (req, res) => {
-        res.sendFile(req.params['file'], { root: 'public/css'});
-    });
-    ex.get('/assets/fonts/Nunito-Regular.ttf', (req, res) => {
-        res.sendFile('Nunito-Regular.ttf', { root: 'public/assets/fonts/'});
-    });
+
+    // Serve files on public
+    ex.use('/', express.static('public'));
 
     ex.get('/redis/set', async (req, res) => {
         key = req.query.key;
