@@ -370,7 +370,7 @@ module.exports = class Games {
     /**
      * Register the vote for an answer
      * */
-    static async answer(redisIO, userID, gameID, answer_timestamp, cb, errCB) {
+    static async answer(redisIO, userID, gameID, answer_time, cb, errCB) {
 
         async function op() {
             let toWatch = [userID, gameID];
@@ -390,10 +390,7 @@ module.exports = class Games {
             let updated = false;
             game.players.find((p) => {
                 if (p.id === user.id) {
-                    p.answer = answer_timestamp;
-
-                    // Calculate the interval
-                    p.answer['time'] = p.answer['time'] - game.roundStart;
+                    p.answer = answer_time;
                     updated = true;
                 }
             });

@@ -13,10 +13,6 @@ module.exports = function(socket) {
 
         // Generate the answer to be registered immediately
         let now = Date.now();
-        let answer_timestamp = {
-            time: now,
-            answer: answer
-        }
 
         let userID = `user_${socket.id}`;
         debug(`Player ${userID} answered: ${answer}`);
@@ -51,8 +47,14 @@ module.exports = function(socket) {
                 return;
             }
 
+            // Calculate the time spent to answer
+            let answer_time = {
+                time: now - game.roundStart,
+                answer: answer
+            }
+
             // Provide the callback to call when successful
-            await Games.answer(redisIO, userID, game.id, answer_timestamp, (retGame) => {
+            await Games.answer(redisIO, userID, game.id, answer_time, (retGame) => {
 
                 let allAnswered = true;
                 let answers = {};
