@@ -39,15 +39,17 @@ class Player():
 
         self.sio = socketio.Client()
 
+        self.event = threading.Event()
+
         self.setup_callbacks()
         self.sio.connect(self.server, transports=['websocket'])
 
-        self.event = threading.Event()
 
     def setup_callbacks(self):
         @self.sio.event
         def connect():
             self.print_log('connection established')
+            self.event.set()
 
         @self.sio.event
         def disconnect():

@@ -32,6 +32,9 @@ class GameCoordinator():
                 self.players.append(x)
 
     def setup_players(self):
+        [ p.event.wait() for p in self.players ]
+        [ p.event.clear() for p in self.players ]
+
         [ p.setup_user() for p in self.players ]
 
         [ p.event.wait() for p in self.players ]
