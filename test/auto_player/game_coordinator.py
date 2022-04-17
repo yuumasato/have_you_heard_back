@@ -61,6 +61,7 @@ class GameCoordinator():
         time.sleep(0.4)
 
     def start_game(self):
+        [ p.event.clear() for p in self.players ]
         self.players[0].emit_start()
         [ p.event.wait() for p in self.players ]
         [ p.event.clear() for p in self.players ]
