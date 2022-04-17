@@ -64,7 +64,8 @@ jobs:
         touch .env
         echo NODE_ENV="$NODE_ENV" >> .env
         echo DATABASE_URL="$DATABASE_URL" >> .env
-        DEBUG=have_you_heard node src &
+        mkdir -p /tmp/log
+        DEBUG=have_you_heard node src 2>/tmp/log/error.log >/tmp/log/server.log &
         sleep 2
 
     - name: Run tests
@@ -75,3 +76,9 @@ jobs:
         echo "Run test games"
         python3 auto_player.py -v -s http://localhost:3000 -t
         popd
+
+    - name: Upload log
+      uses: actions/upload-artifact@v3
+      with:
+        name: logs
+        path: /tmp/log/
