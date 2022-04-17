@@ -81,6 +81,7 @@ class Player():
         @self.sio.event
         def persona(data):
             self.print_log('Received persona - ' + data)
+            self.event.set()
 
         @self.sio.on('round answers')
         def round_answers(data):
