@@ -36,6 +36,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   test:
+    environment: haveyouneverheard
     needs: build_image
     runs-on: ubuntu-latest
     container:
