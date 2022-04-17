@@ -7,6 +7,7 @@ const { createAdapter, setupPrimary } = require("@socket.io/cluster-adapter");
 if (cluster.isMaster) {
     console.log(`Master ${process.pid} is running`);
 
+    require('dotenv').config()
     const httpServer = http.createServer();
     const numWorkers = (numCPUs > 3? 3: numCPUs);
     const PORT = process.env.PORT || 3000;
@@ -39,6 +40,7 @@ if (cluster.isMaster) {
 } else {
     console.log(`Worker ${process.pid} started`);
 
+    require('dotenv').config()
     const express = require('express');
     const ex = express();
     const httpServer = http.createServer(ex);
