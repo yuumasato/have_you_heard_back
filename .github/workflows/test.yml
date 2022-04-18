@@ -8,28 +8,33 @@ on:
   workflow_dispatch:
 
 jobs:
-
-  build_image:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Build image
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./container/Dockerfile
-          push: false
-
   test:
-    needs: build_image
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/${{ github.actor }}/have_you_heard:latest
+    container: node:16.14-bullseye
+
+    services:
+      postgres:
+        image: postgres:13.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: have_you_heard
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:6.2.6
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
 
     steps:
     - name: Checkout
@@ -38,33 +43,53 @@ jobs:
     - name: Install dependencies
       run: |
         npm install
+        apt-get update
+        apt-get install -y python3-yaml python3-websocket python3-socketio-client postgresql-client python3-socketio redis-tools
 
-    - name: Start Redis
+    - name: Populate DB
+      env:
+        PGUSER: postgres
+        PGPASSWORD: postgres
+        PGHOST: postgres
+        PGDATABASE: have_you_heard
       run: |
-        redis-server &
-        sleep 2
+        cd test
+        echo -n ${PGPASSWORD} > ~/.pgpass
+        psql -h ${PGHOST} -U ${PGUSER} -d ${PGDATABASE} -a -f init_db.sql
+        cd ..
 
     - name: Start Server
-      shell: bash
+      id: server
       env:
-        NODE_ENV: ${{ secrets.NODE_ENV }}
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        REDIS_HOST: redis
+        REDIS_PORT: 6379
+        DATABASE_URL: "postgres://postgres:postgres@postgres:5432/have_you_heard"
       run: |
-        touch .env
-        echo NODE_ENV="$NODE_ENV" >> .env
-        echo DATABASE_URL="$DATABASE_URL" >> .env
         mkdir -p /tmp/log
+        touch .env
+        echo REDIS_HOST=${REDIS_HOST} >> .env
+        echo REDIS_PORT=${REDIS_PORT} >> .env
+        echo DATABASE_URL=${DATABASE_URL} >> .env
         DEBUG=have_you_heard node src 2>/tmp/log/error.log >/tmp/log/server.log &
         sleep 2
 
     - name: Run tests
+      id: tests
       run: |
-        pushd test
+        cd test
         echo "Run sanity random game"
-        python3 auto_player.py -v -s http://localhost:3000 -r
+        timeout 5m python3 auto_player.py -v -s http://localhost:3000 -r
         echo "Run test games"
-        python3 auto_player.py -v -s http://localhost:3000 -t
-        popd
+        timeout 5m python3 auto_player.py -v -s http://localhost:3000 -t
+        cd ..
+
+    - name: Debug Job Failure
+      run: |
+        echo "******** Server stderr ********"
+        cat /tmp/log/error.log
+        echo "******** Server stdout ********"
+        cat /tmp/log/server.log
+      if: always() && (steps.server.outcome == 'failure' || steps.tests.outcome == 'failure')
 
     - name: Upload log
       uses: actions/upload-artifact@v3
