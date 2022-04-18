@@ -49,7 +49,9 @@ if (cluster.isMaster) {
     const Redis = require('./server/redis.service.js');
 
     // Connect node to redis to talk to other workers
-    Redis.init({url: process.env.REDIS_URL} ||
+    Redis.init(
+        {host: process.env.REDIS_HOST, port: process.env.REDIS_PORT} ||
+        {host: process.env.REDIS_URL} ||
         {host: 'localhost', port: 6379});
     const pubClient = Redis.getPub();
     const subClient = Redis.getSub();
