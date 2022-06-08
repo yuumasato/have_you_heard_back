@@ -59,43 +59,9 @@ module.exports = function(socket) {
             await Games.votePersona(redisIO, userID, user.game, persona, async (retGame) => {
                 console.log(`Received vote for ${persona}`);
 
-                let histogram = {};
-                let allVoted = true;
-                // Check if all the players voted
-                for (let p of retGame.players) {
-                    if (p.personaVote) {
-                        if (p.personaVote in histogram) {
-                            histogram[p.personaVote]++;
-                        } else {
-                            histogram[p.personaVote] = 1;
-                        }
-                    } else {
-                        allVoted = false;
-                        break;
-                    }
-                }
+                winner = Games.decidePersona(retGame);
 
-                if (allVoted) {
-                    let winner = undefined;
-                    let keys = Object.keys(histogram);
-                    // Check winner persona
-                    for (k of keys) {
-                        if (!winner) {
-                            winner = k;
-                        } else {
-                            if (histogram[k] > histogram[winner]) {
-                                winner = k;
-                            }
-                        }
-                    }
-                    if (winner === 'Aleatório') {
-                        let random = getRandomInt(0, 8);
-                        console.log(`Random int ${random}`);
-                        winner = pt_personas[random];
-                    }
-
-                    console.log(`Persona defined for game ${retGame.id}: ${winner}`);
-                    debug(`game:\n` + JSON.stringify(retGame, null, 2));
+                if (winner) {
                     let io = Server.getIO();
                     io.to(user.room).emit('persona', winner);
 

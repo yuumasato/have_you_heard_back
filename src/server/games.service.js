@@ -253,6 +253,51 @@ module.exports = class Games {
     }
 
     /**
+     * Checks is everyone voted on a persona and decides the persona for the game
+     * */
+    static decidePersona(game) {
+        let histogram = {};
+        let allVoted = true;
+        // Check if all the players voted
+        for (let p of game.players) {
+            if (p.personaVote) {
+                if (p.personaVote in histogram) {
+                    histogram[p.personaVote]++;
+                } else {
+                    histogram[p.personaVote] = 1;
+                }
+            } else {
+                allVoted = false;
+                break;
+            }
+        }
+
+        let winner = undefined;
+        if (allVoted) {
+            let keys = Object.keys(histogram);
+            // Check winner persona
+            for (k of keys) {
+                if (!winner) {
+                    winner = k;
+                } else {
+                    if (histogram[k] > histogram[winner]) {
+                        winner = k;
+                    }
+                }
+            }
+            if (winner === 'Aleatório') {
+                let random = getRandomInt(0, 8);
+                console.log(`Random int ${random}`);
+                winner = pt_personas[random];
+            }
+
+            console.log(`Persona defined for game ${game.id}: ${winner}`);
+            debug(`game:\n` + JSON.stringify(game, null, 2));
+        }
+        return winner;
+    }
+
+    /**
      * Decide the game winner based on rounds won and time to answer
      * */
     static decideWinner(game) {
