@@ -276,7 +276,8 @@ module.exports = class Games {
         if (allVoted) {
             let keys = Object.keys(histogram);
             // Check winner persona
-            for (k of keys) {
+            for (let k of keys) {
+                debug(k);
                 if (!winner) {
                     winner = k;
                 } else {
