@@ -206,6 +206,89 @@ module.exports = class Games {
     }
 
     /**
+     * Checks if every voted on an answer and decides who won the round
+     * */
+    static decideRoundWinner(game) {
+        let sumVotes = {};
+        let allVoted = true;
+        // Check if all the players voted
+        for (let p of game.players) {
+            if (p.answerVote) {
+                // Only count valid votes
+                if (p.answerVote == "No voted answer") {
+                    continue;
+                }
+                if (p.answerVote in sumVotes) {
+                    sumVotes[p.answerVote]++;
+                } else {
+                    sumVotes[p.answerVote] = 1;
+                }
+            } else {
+                allVoted = false;
+                break;
+            }
+        }
+
+        let winner = undefined;
+        if (allVoted) {
+            let keys = Object.keys(sumVotes);
+
+            debug(`All voted, find winner`);
+            // Check winner answer
+            for (let k of keys) {
+                if (!winner) {
+                    winner = k;
+                } else {
+                    if (sumVotes[k] > sumVotes[winner]) {
+                        winner = k;
+                    } else if (sumVotes[k] === sumVotes[winner]) {
+
+                        let winner_time = undefined;
+                        let player_time = undefined;
+                        // Break the tie according to time
+                        for (let p of game.players) {
+                            if (p.id == k) {
+                                player_time = p.answer['time'];
+                            }
+                            if (p.id == winner) {
+                                winner_time = p.answer['time'];
+                            }
+                        }
+
+                        if (winner_time == undefined ||
+                            player_time == undefined)
+                        {
+                            console.log(`DEBUG THIS: Times not registered`);
+                        }
+                        else if (player_time < winner_time) {
+                            winner = k;
+                        }
+                    }
+                }
+            }
+            // No one voted, so there is no obvious winner
+            // Let's find out who provided the fastest answer
+            if (winner == undefined) {
+                let fastest_player = undefined;
+                for (let p of game.players) {
+                    if (fastest_player == undefined) {
+                        fastest_player = p;
+                    }
+                    if (p.answer['time'] < fastest_player.answer['time']) {
+                        fastest_player = p;
+                    }
+                }
+                winner = fastest_player.id
+            }
+
+            console.log(`Round winner for game ${game.id}: ${winner}`);
+            debug(`Round ${game.currentRound} of ${game.numRounds}`);
+        }
+        return winner;
+
+    }
+
+    /**
      * Register the vote for a persona
      * */
     static async votePersona(redisIO, userID, gameID, persona, cb, errCB) {

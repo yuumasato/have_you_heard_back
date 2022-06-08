@@ -40,80 +40,9 @@ module.exports = function(socket) {
             await Games.voteAnswer(redisIO, user.id, user.game, chosen, async (retGame) => {
                 console.log(`Registered vote for ${chosen} from ${user.name}`);
 
-                let sumVotes = {};
-                let allVoted = true;
-                // Check if all the players voted
-                for (let p of retGame.players) {
-                    if (p.answerVote) {
-                        // Only count valid votes
-                        if (p.answerVote == "No voted answer") {
-                            continue;
-                        }
-                        if (p.answerVote in sumVotes) {
-                            sumVotes[p.answerVote]++;
-                        } else {
-                            sumVotes[p.answerVote] = 1;
-                        }
-                    } else {
-                        allVoted = false;
-                        break;
-                    }
-                }
+                winner = Games.decideRoundWinner(retGame);
 
-                if (allVoted) {
-                    let winner = undefined;
-                    let keys = Object.keys(sumVotes);
-
-                    debug(`All voted, find winner`);
-                    // Check winner answer
-                    for (k of keys) {
-                        if (!winner) {
-                            winner = k;
-                        } else {
-                            if (sumVotes[k] > sumVotes[winner]) {
-                                winner = k;
-                            } else if (sumVotes[k] === sumVotes[winner]) {
-
-                                let winner_time = undefined;
-                                let player_time = undefined;
-                                // Break the tie according to time
-                                for (let p of retGame.players) {
-                                    if (p.id == k) {
-                                        player_time = p.answer['time'];
-                                    }
-                                    if (p.id == winner) {
-                                        winner_time = p.answer['time'];
-                                    }
-                                }
-
-                                if (winner_time == undefined ||
-                                    player_time == undefined)
-                                {
-                                    console.log(`DEBUG THIS: Times not registered`);
-                                }
-                                else if (player_time < winner_time) {
-                                    winner = k;
-                                }
-                            }
-                        }
-                    }
-                    // No one voted, so there is no obvious winner
-                    // Let's find out who provided the fastest answer
-                    if (winner == undefined) {
-                        let fastest_player = undefined;
-                        for (let p of retGame.players) {
-                            if (fastest_player == undefined) {
-                                fastest_player = p;
-                            }
-                            if (p.answer['time'] < fastest_player.answer['time']) {
-                                fastest_player = p;
-                            }
-                        }
-                        winner = fastest_player.id
-                    }
-
-                    console.log(`Round winner for game ${retGame.id}: ${winner}`);
-                    debug(`Round ${retGame.currentRound} of ${retGame.numRounds}`);
+                if (winner) {
                     let io = Server.getIO();
                     io.to(user.room).emit('round winner', winner);
 
