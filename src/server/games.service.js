@@ -298,6 +298,18 @@ module.exports = class Games {
         return winner;
     }
 
+    static async announcePersona(redisIO, game, room, winner) {
+        let io = Server.getIO();
+        io.to(room).emit('persona', winner);
+
+        await Games.nextRound(redisIO, game.id, undefined, (startedGame) => {
+            debug(`Game round initialized for game ${startedGame.id}`);
+            debug(`game:\n` + JSON.stringify(startedGame, null, 2));
+        }, (err) => {
+            console.err(`Failed to initialize new round for game ${startedGame.id}: ` + err);
+        });
+    }
+
     /**
      * Decide the game winner based on rounds won and time to answer
      * */

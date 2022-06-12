@@ -33,17 +33,10 @@ module.exports = function(socket) {
                     });
 
                     let game = await Games.get(redisIO, gameID);
+
                     let winner = Games.decidePersona(game);
                     if (winner) {
-                        let io = Server.getIO();
-                        io.to(user.room).emit('persona', winner);
-
-                        await Games.nextRound(redisIO, game.id, undefined, (startedGame) => {
-                            debug(`Game round initialized for game ${startedGame.id}`);
-                            debug(`game:\n` + JSON.stringify(startedGame, null, 2));
-                        }, (err) => {
-                            console.err(`Failed to initialize new round for game ${startedGame.id}: ` + err);
-                        });
+                        Games.announcePersona(redisIO, game, user.room, winner);
                     } else {
                         console.log(`Game (${game.id}): Waiting for other players to vote`);
                     }
