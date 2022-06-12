@@ -475,6 +475,28 @@ module.exports = class Games {
         return runWithRetries(op, cb, errCB);
     }
 
+    static decideAllAnswered(game) {
+        let allAnswered = true;
+        let answers = {};
+        // Check if all the players answered
+        for (let p of game.players) {
+            if (p.answer) {
+                answers[p.id] = p.answer['answer'];
+            } else {
+                allAnswered = false;
+                break;
+            }
+        }
+        return [allAnswered, answers];
+    }
+
+    static announceAnswers(game, room, answers) {
+        console.log(`All answers gathered for game ${game.id}`);
+        debug(`game:\n` + JSON.stringify(Game, null, 2));
+        let io = Server.getIO();
+        io.to(room).emit('round answers', JSON.stringify(answers));
+    }
+
     /**
      * Register the vote for an answer
      * */

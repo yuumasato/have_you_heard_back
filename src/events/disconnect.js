@@ -34,9 +34,12 @@ module.exports = function(socket) {
 
                     let game = await Games.get(redisIO, gameID);
 
-                    let winner = Games.decidePersona(game);
-                    if (winner) {
-                        Games.announcePersona(redisIO, game, user.room, winner);
+                    let decision = Games.decideAllAnswered(game);
+                    let persona = Games.decidePersona(game);
+                    if (decision[0]) {
+                        Games.announceAnswers(game, user.room, decision[1]);
+                    } else if (persona) {
+                        Games.announcePersona(redisIO, game, user.room, persona);
                     } else {
                         console.log(`Game (${game.id}): Waiting for other players to vote`);
                     }

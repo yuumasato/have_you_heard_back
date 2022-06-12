@@ -56,23 +56,10 @@ module.exports = function(socket) {
             // Provide the callback to call when successful
             await Games.answer(redisIO, userID, game.id, answer_time, (retGame) => {
 
-                let allAnswered = true;
-                let answers = {};
-                // Check if all the players answered
-                for (let p of retGame.players) {
-                    if (p.answer) {
-                        answers[p.id] = p.answer['answer'];
-                    } else {
-                        allAnswered = false;
-                        break;
-                    }
-                }
+                let decision = Games.decideAllAnswered(retGame);
 
-                if (allAnswered) {
-                    console.log(`All answers gathered for game ${game.id}`);
-                    debug(`game:\n` + JSON.stringify(retGame, null, 2));
-                    let io = Server.getIO();
-                    io.to(user.room).emit('round answers', JSON.stringify(answers));
+                if (decision[0]) {
+                    Games.announceAnswers(retGame, user.room, decision[1]);
                 } else {
                     console.log(`Game (${game.id}): Waiting for other players to answer`);
                 }
