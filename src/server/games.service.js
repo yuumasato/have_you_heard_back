@@ -497,7 +497,7 @@ module.exports = class Games {
                     }
                 });
 
-                if (game.roundWinners.length >= game.numRounds) {
+                if (game.currentRound >= game.numRounds) {
                     game.match = Games.decideWinner(game);
                     console.log(`The game (${game.id}) winner was ${game.match.winner}`);
                 }
