@@ -43,23 +43,7 @@ module.exports = function(socket) {
                 winner = Games.decideRoundWinner(retGame);
 
                 if (winner) {
-                    let io = Server.getIO();
-                    io.to(user.room).emit('round winner', winner);
-
-                    await Games.nextRound(redisIO, retGame.id, winner, async (startedGame) => {
-                        if (startedGame.currentRound > startedGame.numRounds) {
-                            // Finish game
-                            if (!startedGame.match) {
-                                throw new Error(`Game ${startedGame.id} ended without winner`);
-                            }
-
-                            io.to(user.room).emit('game winner', JSON.stringify(startedGame.match));
-                        } else {
-                            debug(`Game round initialized for game ${startedGame.id}`);
-                        }
-                    }, (err) => {
-                        console.error(`Failed to initialize new round for game ${retGame.id}: ` + err);
-                    });
+                    Games.announceRoundWinner(redisIO, retGame, user.room, winner);
                 } else {
                     console.log(`Game (${retGame.id}): Waiting for other players to vote`);
                 }

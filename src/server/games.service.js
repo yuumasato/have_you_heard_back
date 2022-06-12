@@ -288,6 +288,26 @@ module.exports = class Games {
 
     }
 
+    static async announceRoundWinner(redisIO, game, room, winner) {
+        let io = Server.getIO();
+        io.to(room).emit('round winner', winner);
+
+        await Games.nextRound(redisIO, game.id, winner, async (startedGame) => {
+            if (startedGame.currentRound > startedGame.numRounds) {
+                // Finish game
+                if (!startedGame.match) {
+                    throw new Error(`Game ${startedGame.id} ended without winner`);
+                }
+
+                io.to(room).emit('game winner', JSON.stringify(startedGame.match));
+            } else {
+                debug(`Game round initialized for game ${startedGame.id}`);
+            }
+        }, (err) => {
+            console.error(`Failed to initialize new round for game ${game.id}: ` + err);
+        });
+    }
+
     /**
      * Register the vote for a persona
      * */
