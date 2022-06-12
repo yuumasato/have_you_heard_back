@@ -27,6 +27,7 @@ module.exports = function(socket) {
                         if (game) {
                             debug(`game:\n` + JSON.stringify(game, null, 2));
                             console.log(`user ${user.id} left the game ${game.id}`);
+                            io.to(user.room).emit('game', JSON.stringify(game));
                         }
                     }, (err) => {
                         console.error(`Could not remove user ${userID} from game ${gameID}: ` + err);
